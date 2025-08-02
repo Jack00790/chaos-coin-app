@@ -1,0 +1,146 @@
+/* Global styles for the Chaos Coin app.
+
+   The palette takes inspiration from Robinhood: a dark green accent (#0d673f)
+   paired with neutral greys and off‑white backgrounds.  Text is kept dark for
+   readability. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f5f5f5;
+  color: #030a18;
+  height: 100%;
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #0d673f;
+  color: #ffffff;
+}
+
+.navbar__title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.navbar__button .connect-btn {
+  /* thirdweb's ConnectButton uses its own styles; override with classes */
+  background-color: #ffffff;
+  color: #0d673f;
+  border: 1px solid #ffffff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem 1rem;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.title {
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #0d673f;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  color: #0d673f;
+  font-weight: bold;
+}
+
+.token-info p,
+.account-balance p {
+  margin-bottom: 0.25rem;
+}
+
+.form-group {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #cccccc;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.action-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.buy-btn {
+  background-color: #0d673f;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.buy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sell-btn {
+  background-color: #e60023;
+  color: #ffffff;
+}
+
+.sell-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #e60023;
+  font-weight: bold;
+}
+
+.account-message {
+  margin: 0.5rem 0;
+  font-style: italic;
+}
