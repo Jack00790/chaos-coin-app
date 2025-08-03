@@ -31,20 +31,32 @@ export default function News() {
   }, [account]);
 
   const fetchPosts = () => {
-    // In a real app, fetch from your backend/database
-    const samplePosts = [
-      {
-        id: 1,
-        content: "🚀 Chaos Coin launch is live! Welcome to the future of DeFi!",
-        author: "Chaos Team",
-        timestamp: new Date().toISOString(),
-        isPinned: true,
-        type: "admin",
-        likes: 42,
-        shares: 15
+    try {
+      // Load posts from localStorage
+      const savedPosts = localStorage.getItem('chaoscoin_posts');
+      if (savedPosts) {
+        setPosts(JSON.parse(savedPosts));
+      } else {
+        // Default posts if none saved
+        const defaultPosts = [
+          {
+            id: 1,
+            content: "🚀 Chaos Coin launch is live! Welcome to the future of DeFi!",
+            author: "Chaos Team",
+            timestamp: new Date().toISOString(),
+            isPinned: true,
+            type: "admin",
+            likes: 42,
+            shares: 15
+          }
+        ];
+        setPosts(defaultPosts);
+        localStorage.setItem('chaoscoin_posts', JSON.stringify(defaultPosts));
       }
-    ];
-    setPosts(samplePosts);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+      setPosts([]);
+    }
   };
 
   const fetchNewsData = async () => {
@@ -88,7 +100,10 @@ export default function News() {
     };
 
     try {
-      setPosts(prev => [post, ...prev]);
+      const updatedPosts = [post, ...posts];
+      setPosts(updatedPosts);
+      localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+      
       setNewPost({ 
         content: "", 
         isPinned: false, 
@@ -96,7 +111,6 @@ export default function News() {
         mediaType: null,
         poll: null 
       });
-      setShowAdminPanel(false);
       setError("");
     } catch (err) {
       setError("Failed to create post. Please try again.");
@@ -104,15 +118,19 @@ export default function News() {
   };
 
   const togglePin = (postId) => {
-    setPosts(prev => prev.map(post => 
+    const updatedPosts = posts.map(post => 
       post.id === postId 
         ? { ...post, isPinned: !post.isPinned }
         : post
-    ));
+    );
+    setPosts(updatedPosts);
+    localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
   };
 
   const deletePost = (postId) => {
-    setPosts(prev => prev.filter(post => post.id !== postId));
+    const updatedPosts = posts.filter(post => post.id !== postId);
+    setPosts(updatedPosts);
+    localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
   };
 
   const addPollOption = () => {
@@ -197,6 +215,9 @@ export default function News() {
         {/* Twitter-Style Admin Posting */}
         {isAdmin && (
           <div className="card twitter-compose">
+            <div className="admin-badge">
+              👑 Admin Posting
+            </div>
             <div style={{display: 'flex', gap: '1rem'}}>
               <div style={{
                 width: '48px',
