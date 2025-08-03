@@ -144,3 +144,407 @@ html, body {
   margin: 0.5rem 0;
   font-style: italic;
 }
+
+/* Mobile-first News and Admin Styles */
+.admin-post-creator {
+  margin-bottom: 2rem;
+}
+
+.post-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.media-upload {
+  display: flex;
+  align-items: center;
+}
+
+.media-input {
+  display: none;
+}
+
+.media-label {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.media-preview {
+  position: relative;
+  margin-top: 1rem;
+}
+
+.preview-image,
+.preview-video {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 0.5rem;
+}
+
+.remove-media {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.post-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pin-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-btn {
+  background-color: #1da1f2;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 2rem;
+  font-weight: bold;
+}
+
+.posts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-item {
+  border: 1px solid #eee;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #fafafa;
+}
+
+.post-item.pinned {
+  border-color: #0d673f;
+  background: #f0f8f4;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.post-author {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pin-badge {
+  background: #0d673f;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.post-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pin-btn,
+.delete-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.pin-btn {
+  background: #1da1f2;
+  color: white;
+}
+
+.delete-btn {
+  background: #e60023;
+  color: white;
+}
+
+.post-content {
+  margin: 1rem 0;
+}
+
+.post-media {
+  margin-top: 1rem;
+}
+
+.post-image,
+.post-video {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.post-timestamp {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.no-posts {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* News Feed Styles */
+.news-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.news-item {
+  border: 1px solid #eee;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+.news-item.pinned-post {
+  border-color: #0d673f;
+  background: #f0f8f4;
+}
+
+.news-item.crypto-news {
+  border-left: 4px solid #1da1f2;
+}
+
+.news-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.news-content h3 {
+  margin: 0.5rem 0;
+  color: #0d673f;
+}
+
+.news-media {
+  margin-top: 1rem;
+}
+
+.news-image,
+.news-video {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.news-timestamp {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+/* Fiat Buy Styles */
+.fiat-buy-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
+}
+
+.price-display {
+  background: #f0f8f4;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.fee-breakdown {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.fee-breakdown p {
+  margin: 0.25rem 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fiat-buy-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+.payment-methods {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+/* Navigation Styles */
+.mobile-nav {
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-container {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  padding: 1rem 0;
+  cursor: pointer;
+}
+
+.desktop-nav {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #666;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background-color: #0d673f;
+  color: white;
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+}
+
+.nav-label {
+  font-weight: 500;
+}
+
+.mobile-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 0.5rem;
+  margin: 0 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  color: #666;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.3s ease;
+}
+
+.mobile-nav-link:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link.active {
+  background-color: #f0f8f4;
+  color: #0d673f;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+  
+  .desktop-nav {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: block;
+  }
+  .main-content {
+    padding: 1rem 0.5rem;
+  }
+  
+  .post-header,
+  .news-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .post-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .post-options {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .post-btn {
+    width: 100%;
+    text-align: center;
+  }
+};
+}
