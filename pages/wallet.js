@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
@@ -38,7 +37,7 @@ export default function Wallet() {
         `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
       );
       const data = await response.json();
-      
+
       if (data.pairs && data.pairs.length > 0) {
         const price = parseFloat(data.pairs[0].priceUsd || "0");
         setTokenPrice(price > 0 ? price : 0.001);
@@ -53,13 +52,13 @@ export default function Wallet() {
 
   const loadTransactionHistory = async () => {
     if (!account?.address) return;
-    
+
     try {
       const realTransactions = await getTransactionHistory(
         account.address,
         process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS
       );
-      
+
       const formattedTransactions = realTransactions.map(tx => ({
         type: tx.type,
         amount: tx.amount,
@@ -70,7 +69,7 @@ export default function Wallet() {
         fullHash: tx.hash,
         timestamp: tx.timestamp
       }));
-      
+
       setTransactions(formattedTransactions);
     } catch (error) {
       console.error('Error loading transaction history:', error);
@@ -120,7 +119,7 @@ export default function Wallet() {
               {account.address}
             </div>
           </div>
-          
+
           <div className="market-data">
             <div className="market-stat">
               <div className="market-stat-label">CHAOS Balance</div>
@@ -143,6 +142,60 @@ export default function Wallet() {
             <div className="market-stat">
               <div className="market-stat-label">Current Price</div>
               <div className="market-stat-value">${tokenPrice.toFixed(6)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Wallet Balance */}
+        <div className="card">
+          <h2 className="section-title">Your Balance</h2>
+          <div className="balance-container">
+            <div className="balance-item">
+              <span className="balance-label">CHAOS Tokens</span>
+              <span className="balance-value">
+                {loadingBalance ? "Loading..." : formatBalance(balance)}
+              </span>
+              <span className="balance-usd">
+                ≈ ${calculateUSDValue(formatBalance(balance))}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* MetaMask Tutorial */}
+        <div className="card">
+          <h2 className="section-title">How to Import CHAOS Token to MetaMask</h2>
+          <div className="tutorial-container">
+            <div className="tutorial-info">
+              <h3>Token Contract Address:</h3>
+              <code className="contract-address">{process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}</code>
+              <button 
+                onClick={() => navigator.clipboard.writeText(process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS)}
+                className="copy-btn"
+              >
+                Copy Address
+              </button>
+            </div>
+            <div className="tutorial-video">
+              <iframe
+                width="100%"
+                height="315"
+                src="https://www.youtube.com/embed/6Gf_kRE4MJU"
+                title="How to Add Custom Token to MetaMask"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="tutorial-steps">
+              <h3>Quick Steps:</h3>
+              <ol>
+                <li>Open MetaMask and go to "Assets" tab</li>
+                <li>Click "Import tokens" at the bottom</li>
+                <li>Paste the contract address above</li>
+                <li>Token symbol and decimals should auto-fill</li>
+                <li>Click "Add Custom Token" and confirm</li>
+              </ol>
             </div>
           </div>
         </div>
@@ -211,7 +264,7 @@ export default function Wallet() {
           <p className="text-gray mb-3" style={{textAlign: 'center'}}>
             If you don't see your CHAOS tokens in your wallet, you may need to add the token address manually.
           </p>
-          
+
           <div style={{marginTop: '2rem', padding: '1rem', background: 'rgba(16,185,129,0.1)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)'}}>
             <h3 style={{color: '#10b981', marginBottom: '1rem'}}>CHAOS Token Information:</h3>
             <div style={{display: 'grid', gap: '0.5rem', fontSize: '0.9rem'}}>

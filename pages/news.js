@@ -57,10 +57,10 @@ export default function News() {
 
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) return;
-    
+
     // Security validation
     const sanitizedContent = newPost.content.trim().slice(0, 2000); // Limit length
-    
+
     if (!isAdmin) {
       setError("Unauthorized: Admin access required");
       return;
@@ -173,7 +173,7 @@ export default function News() {
                         fontFamily: 'inherit'
                       }}
                     />
-                    
+
                     {newPost.media && (
                       <div style={{marginTop: '1rem', position: 'relative'}}>
                         <img 
@@ -205,7 +205,7 @@ export default function News() {
                         </button>
                       </div>
                     )}
-                    
+
                     <div className="post-actions twitter-actions" style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -232,7 +232,7 @@ export default function News() {
                         <label htmlFor="media-upload" style={{cursor: 'pointer', color: '#10b981'}}>
                           📷 Media
                         </label>
-                        
+
                         <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer'}}>
                           <input
                             type="checkbox"
@@ -241,7 +241,7 @@ export default function News() {
                           />
                           📌 Pin
                         </label>
-                        
+
                         <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
                           {newPost.content.length}/2000
                         </span>

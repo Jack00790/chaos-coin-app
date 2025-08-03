@@ -70,15 +70,39 @@ export default function Swap() {
     setToToken(tempToken);
     setFromAmount(toAmount);
     setToAmount(tempAmount);
+    setQuote(null); // Reset quote after swapping
   };
 
   const handleFromAmountChange = (e) => {
     const value = sanitizeInput(e.target.value, 'number');
     setFromAmount(value.toString());
+    setError(""); // Clear errors on new input
   };
 
   const isSwapDisabled = () => {
-    return !account || !fromAmount || parseFloat(fromAmount) <= 0 || loading || !quote;
+    return !account || !fromAmount || parseFloat(fromAmount) <= 0 || loading;
+  };
+
+  const executeSwap = async () => {
+    if (!quote || isSwapDisabled()) return;
+    
+    try {
+      setLoading(true);
+      setError("");
+      
+      // This is a simplified swap - in production you'd use actual DEX contracts
+      alert(`Swap executed: ${fromAmount} ${fromToken} → ${quote.outputAmount} ${toToken}`);
+      
+      // Reset form
+      setFromAmount("");
+      setToAmount("");
+      setQuote(null);
+    } catch (err) {
+      console.error("Swap error:", err);
+      setError("Swap failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

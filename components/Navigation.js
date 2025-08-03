@@ -6,11 +6,11 @@ export default function Navigation() {
   const router = useRouter();
 
   const navItems = [
-    { href: "/", label: "Home", icon: "⌂" },
+    { href: "/", label: "Home", icon: "📊" },
     { href: "/buy", label: "Buy", icon: "🛒" },
-    { href: "/swap", label: "Swap", icon: "⇅" },
-    { href: "/news", label: "News", icon: "📄" },
-    { href: "/wallet", label: "Wallet", icon: "💳" }
+    { href: "/swap", label: "Swap", icon: "⇄" },
+    { href: "/news", label: "News", icon: "📰" },
+    { href: "/wallet", label: "Wallet", icon: "💼" }
   ];
 
   return (
