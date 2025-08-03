@@ -6,7 +6,13 @@ import { getAllCryptoNews } from "../lib/newsApi";
 export default function News() {
   const account = useActiveAccount();
   const [posts, setPosts] = useState([]);
-  const [newPost, setNewPost] = useState({ content: "", isPinned: false, media: null });
+  const [newPost, setNewPost] = useState({ 
+    content: "", 
+    isPinned: false, 
+    media: null, 
+    mediaType: null,
+    poll: null 
+  });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [news, setNews] = useState([]);
@@ -56,7 +62,7 @@ export default function News() {
   };
 
   const handleCreatePost = async () => {
-    if (!newPost.content.trim()) return;
+    if (!newPost.content.trim() && !newPost.media && !newPost.poll) return;
 
     // Security validation
     const sanitizedContent = newPost.content.trim().slice(0, 2000); // Limit length
@@ -75,12 +81,21 @@ export default function News() {
       type: "admin",
       likes: 0,
       shares: 0,
-      media: newPost.media || null
+      retweets: 0,
+      media: newPost.media || null,
+      mediaType: newPost.mediaType || null,
+      poll: newPost.poll || null
     };
 
     try {
       setPosts(prev => [post, ...prev]);
-      setNewPost({ content: "", isPinned: false, media: null });
+      setNewPost({ 
+        content: "", 
+        isPinned: false, 
+        media: null, 
+        mediaType: null,
+        poll: null 
+      });
       setShowAdminPanel(false);
       setError("");
     } catch (err) {
@@ -98,6 +113,60 @@ export default function News() {
 
   const deletePost = (postId) => {
     setPosts(prev => prev.filter(post => post.id !== postId));
+  };
+
+  const addPollOption = () => {
+    if (!newPost.poll) {
+      setNewPost({
+        ...newPost,
+        poll: {
+          question: "",
+          options: ["", ""],
+          duration: 24, // hours
+          votes: {}
+        }
+      });
+    } else if (newPost.poll.options.length < 4) {
+      setNewPost({
+        ...newPost,
+        poll: {
+          ...newPost.poll,
+          options: [...newPost.poll.options, ""]
+        }
+      });
+    }
+  };
+
+  const updatePollOption = (index, value) => {
+    const newOptions = [...newPost.poll.options];
+    newOptions[index] = value;
+    setNewPost({
+      ...newPost,
+      poll: {
+        ...newPost.poll,
+        options: newOptions
+      }
+    });
+  };
+
+  const removePollOption = (index) => {
+    if (newPost.poll.options.length > 2) {
+      const newOptions = newPost.poll.options.filter((_, i) => i !== index);
+      setNewPost({
+        ...newPost,
+        poll: {
+          ...newPost.poll,
+          options: newOptions
+        }
+      });
+    }
+  };
+
+  const removePoll = () => {
+    setNewPost({
+      ...newPost,
+      poll: null
+    });
   };
 
   const formatTime = (timestamp) => {
@@ -125,204 +194,341 @@ export default function News() {
       <main className="main-content">
         <h1 className="page-title">News & Updates</h1>
 
-        {/* Admin Panel */}
+        {/* Twitter-Style Admin Posting */}
         {isAdmin && (
-          <div className="card admin-panel">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-              <h2 className="section-title">Admin Panel</h2>
-              <button 
-                className="btn btn-secondary"
-                onClick={() => setShowAdminPanel(!showAdminPanel)}
-              >
-                {showAdminPanel ? 'Hide' : 'Create Post'}
-              </button>
-            </div>
+          <div className="card twitter-compose">
+            <div style={{display: 'flex', gap: '1rem'}}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'linear-gradient(45deg, #10b981, #34d399)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem',
+                flexShrink: 0
+              }}>
+                👑
+              </div>
+              
+              <div style={{flex: 1}}>
+                <textarea
+                  className="twitter-compose-textarea"
+                  placeholder="What's happening with Chaos Coin?"
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                  maxLength={2000}
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#e5e7eb',
+                    fontSize: '1.2rem',
+                    lineHeight: '1.5',
+                    resize: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                />
 
-            {showAdminPanel && (
-              <div className="post-creator twitter-style">
-                <div style={{display: 'flex', gap: '1rem', marginBottom: '1rem'}}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(45deg, #10b981, #34d399)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem'
-                  }}>
-                    👑
+                {/* Media Preview */}
+                {newPost.media && (
+                  <div style={{marginTop: '1rem', position: 'relative', borderRadius: '16px', overflow: 'hidden'}}>
+                    {newPost.mediaType === 'video' ? (
+                      <video 
+                        src={newPost.media} 
+                        controls
+                        style={{
+                          width: '100%',
+                          maxHeight: '400px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <img 
+                        src={newPost.media} 
+                        alt="Post media"
+                        style={{
+                          width: '100%',
+                          maxHeight: '400px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    )}
+                    <button
+                      onClick={() => setNewPost({...newPost, media: null, mediaType: null})}
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: 'rgba(0,0,0,0.8)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <div style={{flex: 1}}>
-                    <textarea
-                      className="post-textarea twitter-textarea"
-                      placeholder="What's happening with Chaos Coin?"
-                      value={newPost.content}
-                      onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                      maxLength={2000}
+                )}
+
+                {/* Poll Preview */}
+                {newPost.poll && (
+                  <div style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    <input
+                      type="text"
+                      placeholder="Ask a question..."
+                      value={newPost.poll.question}
+                      onChange={(e) => setNewPost({
+                        ...newPost,
+                        poll: {...newPost.poll, question: e.target.value}
+                      })}
                       style={{
                         width: '100%',
-                        minHeight: '120px',
                         background: 'transparent',
                         border: 'none',
                         outline: 'none',
                         color: '#e5e7eb',
-                        fontSize: '1.1rem',
-                        lineHeight: '1.5',
-                        resize: 'none',
-                        fontFamily: 'inherit'
+                        fontSize: '1rem',
+                        marginBottom: '1rem',
+                        fontWeight: '600'
                       }}
                     />
-
-                    {newPost.media && (
-                      <div style={{marginTop: '1rem', position: 'relative'}}>
-                        <img 
-                          src={newPost.media} 
-                          alt="Post media"
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '300px',
-                            borderRadius: '12px',
-                            objectFit: 'cover'
-                          }}
-                        />
-                        <button
-                          onClick={() => setNewPost({...newPost, media: null})}
-                          style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            background: 'rgba(0,0,0,0.7)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '30px',
-                            height: '30px',
-                            color: 'white',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="post-actions twitter-actions" style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '1rem',
-                      paddingTop: '1rem',
-                      borderTop: '1px solid rgba(255,255,255,0.1)'
-                    }}>
-                      <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                    {newPost.poll.options.map((option, index) => (
+                      <div key={index} style={{display: 'flex', gap: '0.5rem', marginBottom: '0.5rem'}}>
                         <input
-                          type="file"
-                          accept="image/*,video/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (e) => setNewPost({...newPost, media: e.target.result});
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          style={{display: 'none'}}
-                          id="media-upload"
-                        />
-                        <label htmlFor="media-upload" style={{cursor: 'pointer', color: '#10b981'}}>
-                          📷 Media
-                        </label>
-
-                        <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer'}}>
-                          <input
-                            type="checkbox"
-                            checked={newPost.isPinned}
-                            onChange={(e) => setNewPost({...newPost, isPinned: e.target.checked})}
-                          />
-                          📌 Pin
-                        </label>
-
-                        <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
-                          {newPost.content.length}/2000
-                        </span>
-                      </div>
-
-                      <div style={{display: 'flex', gap: '1rem'}}>
-                        <button 
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setShowAdminPanel(false);
-                            setNewPost({ content: "", isPinned: false, media: null });
-                          }}
-                          style={{padding: '0.5rem 1rem'}}
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          className="btn btn-primary"
-                          onClick={handleCreatePost}
-                          disabled={!newPost.content.trim() || newPost.content.length > 2000}
+                          type="text"
+                          placeholder={`Option ${index + 1}`}
+                          value={option}
+                          onChange={(e) => updatePollOption(index, e.target.value)}
                           style={{
-                            padding: '0.5rem 1.5rem',
-                            background: (!newPost.content.trim() || newPost.content.length > 2000) 
-                              ? 'rgba(107, 114, 128, 0.3)' 
-                              : 'linear-gradient(45deg, #10b981, #34d399)',
-                            opacity: (!newPost.content.trim() || newPost.content.length > 2000) ? 0.5 : 1
+                            flex: 1,
+                            padding: '0.5rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '8px',
+                            color: '#e5e7eb',
+                            outline: 'none'
+                          }}
+                        />
+                        {newPost.poll.options.length > 2 && (
+                          <button
+                            onClick={() => removePollOption(index)}
+                            style={{
+                              background: 'rgba(239,68,68,0.2)',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#fca5a5',
+                              width: '32px',
+                              height: '32px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem'}}>
+                      <div style={{display: 'flex', gap: '1rem'}}>
+                        {newPost.poll.options.length < 4 && (
+                          <button
+                            onClick={addPollOption}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #10b981',
+                              borderRadius: '6px',
+                              color: '#10b981',
+                              padding: '0.25rem 0.5rem',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            + Add option
+                          </button>
+                        )}
+                        <select
+                          value={newPost.poll.duration}
+                          onChange={(e) => setNewPost({
+                            ...newPost,
+                            poll: {...newPost.poll, duration: parseInt(e.target.value)}
+                          })}
+                          style={{
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '6px',
+                            color: '#e5e7eb',
+                            padding: '0.25rem',
+                            fontSize: '0.8rem'
                           }}
                         >
-                          Post
-                        </button>
+                          <option value={1}>1 hour</option>
+                          <option value={6}>6 hours</option>
+                          <option value={24}>1 day</option>
+                          <option value={72}>3 days</option>
+                          <option value={168}>7 days</option>
+                        </select>
                       </div>
+                      <button
+                        onClick={removePoll}
+                        style={{
+                          background: 'rgba(239,68,68,0.2)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#fca5a5',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        Remove poll
+                      </button>
                     </div>
                   </div>
+                )}
+
+                {/* Compose Actions */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                    {/* Media Upload */}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => setNewPost({
+                            ...newPost, 
+                            media: e.target.result,
+                            mediaType: file.type.startsWith('video') ? 'video' : 'image'
+                          });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      style={{display: 'none'}}
+                      id="media-upload"
+                    />
+                    <label htmlFor="media-upload" style={{cursor: 'pointer', fontSize: '1.2rem', opacity: 0.7}}>
+                      🖼️
+                    </label>
+
+                    {/* Poll Button */}
+                    <button
+                      onClick={addPollOption}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        opacity: 0.7
+                      }}
+                      disabled={!!newPost.poll}
+                    >
+                      📊
+                    </button>
+
+                    {/* Pin Toggle */}
+                    <button
+                      onClick={() => setNewPost({...newPost, isPinned: !newPost.isPinned})}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        opacity: newPost.isPinned ? 1 : 0.7,
+                        color: newPost.isPinned ? '#10b981' : 'inherit'
+                      }}
+                    >
+                      📌
+                    </button>
+
+                    <span style={{color: '#6b7280', fontSize: '0.9rem', marginLeft: 'auto'}}>
+                      {newPost.content.length}/2000
+                    </span>
+                  </div>
+
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleCreatePost}
+                    disabled={(!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000}
+                    style={{
+                      padding: '0.5rem 1.5rem',
+                      borderRadius: '20px',
+                      background: ((!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000) 
+                        ? 'rgba(107, 114, 128, 0.3)' 
+                        : '#10b981',
+                      opacity: ((!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000) ? 0.5 : 1,
+                      fontWeight: '600'
+                    }}
+                  >
+                    Post
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* News Feed */}
+        {/* Twitter-Style Posts Feed */}
         <div className="card">
           <h2 className="section-title">Latest Updates</h2>
 
-          <div style={{display: 'grid', gap: '1rem'}}>
+          <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0'}}>
             {sortedPosts.map((post) => (
               <div 
                 key={post.id} 
+                className="twitter-post"
                 style={{
                   padding: '1.5rem',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   background: post.isPinned 
-                    ? 'rgba(16, 185, 129, 0.1)' 
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: `1px solid ${post.isPinned 
-                    ? 'rgba(16, 185, 129, 0.3)' 
-                    : 'rgba(255, 255, 255, 0.1)'}`,
-                  borderRadius: '12px',
+                    ? 'rgba(16, 185, 129, 0.05)' 
+                    : 'transparent',
                   position: 'relative'
                 }}
               >
                 {/* Pin indicator */}
                 {post.isPinned && (
                   <div style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    right: '1rem',
-                    background: '#10b981',
-                    color: '#000',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '1rem',
+                    color: '#10b981',
+                    fontSize: '0.9rem'
                   }}>
-                    📌 PINNED
+                    📌 <span>Pinned</span>
                   </div>
                 )}
 
                 {/* Post header */}
-                <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem'}}>
+                <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
                   <div style={{
-                    width: '40px',
-                    height: '40px',
+                    width: '48px',
+                    height: '48px',
                     borderRadius: '50%',
                     background: post.type === 'admin' 
                       ? 'linear-gradient(45deg, #10b981, #34d399)' 
@@ -330,59 +536,178 @@ export default function News() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.2rem'
+                    fontSize: '1.2rem',
+                    flexShrink: 0
                   }}>
                     {post.type === 'admin' ? '👑' : '📰'}
                   </div>
-                  <div>
-                    <div style={{fontWeight: 'bold'}}>{post.author}</div>
-                    <div style={{fontSize: '0.9rem', color: '#9ca3af'}}>
-                      {formatTime(post.timestamp)}
-                      {post.source && ` • ${post.source}`}
+                  
+                  <div style={{flex: 1}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                      <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{post.author}</span>
+                      <span style={{color: '#6b7280'}}>@chaoscoin</span>
+                      <span style={{color: '#6b7280'}}>•</span>
+                      <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
+                        {formatTime(post.timestamp)}
+                      </span>
+                    </div>
+
+                    {/* Post content */}
+                    {post.content && (
+                      <div style={{
+                        marginBottom: '1rem', 
+                        lineHeight: '1.6',
+                        fontSize: '1rem',
+                        color: '#e5e7eb'
+                      }}>
+                        {post.content}
+                      </div>
+                    )}
+
+                    {/* Media */}
+                    {post.media && (
+                      <div style={{marginBottom: '1rem', borderRadius: '16px', overflow: 'hidden'}}>
+                        {post.mediaType === 'video' ? (
+                          <video 
+                            src={post.media} 
+                            controls
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <img 
+                            src={post.media} 
+                            alt="Post media"
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Poll */}
+                    {post.poll && (
+                      <div style={{
+                        marginBottom: '1rem',
+                        padding: '1rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}>
+                        <div style={{fontWeight: '600', marginBottom: '1rem', color: '#e5e7eb'}}>
+                          {post.poll.question}
+                        </div>
+                        {post.poll.options.map((option, index) => (
+                          <div key={index} style={{
+                            padding: '0.75rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            marginBottom: '0.5rem',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}>
+                            {option}
+                          </div>
+                        ))}
+                        <div style={{fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem'}}>
+                          {post.poll.duration} hours remaining
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Post actions */}
+                    <div style={{
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      paddingTop: '0.5rem'
+                    }}>
+                      <div style={{display: 'flex', gap: '3rem', fontSize: '0.9rem', color: '#6b7280'}}>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          💬 {post.replies || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          🔄 {post.retweets || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          ❤️ {post.likes || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer'
+                        }}>
+                          📤
+                        </button>
+                      </div>
+
+                      {/* Admin actions */}
+                      {isAdmin && post.type === 'admin' && (
+                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                          <button
+                            onClick={() => togglePin(post.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #10b981',
+                              borderRadius: '16px',
+                              color: '#10b981',
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {post.isPinned ? 'Unpin' : 'Pin'}
+                          </button>
+                          <button
+                            onClick={() => deletePost(post.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #ef4444',
+                              borderRadius: '16px',
+                              color: '#ef4444',
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-
-                {/* Post content */}
-                <div style={{marginBottom: '1rem', lineHeight: '1.6'}}>
-                  {post.content}
-                </div>
-
-                {/* Post actions */}
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <div style={{display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#9ca3af'}}>
-                    {post.likes !== undefined && (
-                      <span>❤️ {post.likes}</span>
-                    )}
-                    {post.shares !== undefined && (
-                      <span>🔄 {post.shares}</span>
-                    )}
-                  </div>
-
-                  {/* Admin actions */}
-                  {isAdmin && post.type === 'admin' && (
-                    <div style={{display: 'flex', gap: '0.5rem'}}>
-                      <button
-                        onClick={() => togglePin(post.id)}
-                        className="btn btn-secondary"
-                        style={{padding: '0.25rem 0.5rem', fontSize: '0.8rem'}}
-                      >
-                        {post.isPinned ? 'Unpin' : 'Pin'}
-                      </button>
-                      <button
-                        onClick={() => deletePost(post.id)}
-                        className="btn"
-                        style={{
-                          padding: '0.25rem 0.5rem', 
-                          fontSize: '0.8rem',
-                          background: 'rgba(239, 68, 68, 0.2)',
-                          color: '#fca5a5'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
