@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import Navbar from "../components/Navbar";
+import { getAllCryptoNews } from "../lib/newsApi";
 
 export default function News() {
   const account = useActiveAccount();
@@ -9,6 +9,9 @@ export default function News() {
   const [newPost, setNewPost] = useState({ content: "", isPinned: false });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Admin wallet address - replace with your actual admin wallet
   const ADMIN_WALLET = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
@@ -18,7 +21,7 @@ export default function News() {
       setIsAdmin(account.address.toLowerCase() === ADMIN_WALLET?.toLowerCase());
     }
     fetchPosts();
-    fetchCryptoNews();
+    fetchNewsData();
   }, [account]);
 
   const fetchPosts = () => {
@@ -38,35 +41,23 @@ export default function News() {
     setPosts(samplePosts);
   };
 
-  const fetchCryptoNews = async () => {
-    // Sample crypto news - in production, use real API
-    const cryptoNews = [
-      {
-        id: 2,
-        content: "Bitcoin reaches new milestone as institutional adoption continues to grow",
-        author: "CryptoNews",
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        isPinned: false,
-        type: "news",
-        source: "External"
-      },
-      {
-        id: 3,
-        content: "DeFi protocols see massive growth in total value locked",
-        author: "DeFi Pulse",
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        isPinned: false,
-        type: "news",
-        source: "External"
-      }
-    ];
-    
-    setPosts(prev => [...prev, ...cryptoNews]);
+  const fetchNewsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const cryptoNews = await getAllCryptoNews();
+      setNews(cryptoNews);
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setError('Failed to load news. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) return;
-    
+
     const post = {
       id: Date.now(),
       content: newPost.content,
@@ -101,7 +92,7 @@ export default function News() {
     const diff = now - date;
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     return "Now";
@@ -141,7 +132,7 @@ export default function News() {
                   value={newPost.content}
                   onChange={(e) => setNewPost({...newPost, content: e.target.value})}
                 />
-                
+
                 <div className="post-actions">
                   <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                     <input
@@ -151,7 +142,7 @@ export default function News() {
                     />
                     📌 Pin this post
                   </label>
-                  
+
                   <div style={{display: 'flex', gap: '1rem'}}>
                     <button 
                       className="btn btn-secondary"
@@ -176,7 +167,7 @@ export default function News() {
         {/* News Feed */}
         <div className="card">
           <h2 className="section-title">Latest Updates</h2>
-          
+
           <div style={{display: 'grid', gap: '1rem'}}>
             {sortedPosts.map((post) => (
               <div 
@@ -279,6 +270,61 @@ export default function News() {
               </div>
             ))}
           </div>
+        </div>
+         {/* Crypto News Feed */}
+        <div className="card">
+          <h2 className="section-title">Latest Crypto News</h2>
+          {loading ? (
+            <div className="text-center">
+              <span className="spinner"></span>
+              <p className="text-gray">Loading news...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center">
+              <p className="text-gray">{error}</p>
+              <button onClick={fetchNewsData} className="btn btn-primary" style={{marginTop: '1rem'}}>
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="news-grid">
+              {news.map((article, index) => (
+                <div key={index} className="news-item">
+                  {article.image && (
+                    <img 
+                      src={article.image} 
+                      alt={article.title}
+                      style={{
+                        width: '100%',
+                        height: '200px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        marginBottom: '1rem'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <h3 className="news-title">
+                    <a 
+                      href={article.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{color: 'inherit', textDecoration: 'none'}}
+                    >
+                      {article.title}
+                    </a>
+                  </h3>
+                  <p className="news-excerpt">{article.description}</p>
+                  <div className="news-meta">
+                    <span>{article.source}</span>
+                    <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

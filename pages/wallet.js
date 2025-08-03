@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
 import { chaosCoinContract } from "../lib/contract";
+import { getTransactionHistory, subscribeToBalanceUpdates } from "../lib/transactionHistory";
+import { getTokenPrice, subscribeToPriceUpdates } from "../lib/uniswap";
 import Navbar from "../components/Navbar";
 
 export default function Wallet() {
@@ -50,27 +52,30 @@ export default function Wallet() {
   };
 
   const loadTransactionHistory = async () => {
-    // In a real app, this would fetch from your backend API
-    // For demo purposes, we'll show mock transactions
-    const mockTransactions = [
-      {
-        type: 'Buy',
-        amount: '1000.00',
-        usdValue: '1.00',
-        date: new Date().toLocaleDateString(),
-        hash: `0x${Math.random().toString(16).substr(2, 8)}...`,
-        status: 'Completed'
-      },
-      {
-        type: 'Buy',
-        amount: '500.00',
-        usdValue: '0.50',
-        date: new Date(Date.now() - 86400000).toLocaleDateString(),
-        hash: `0x${Math.random().toString(16).substr(2, 8)}...`,
-        status: 'Completed'
-      }
-    ];
-    setTransactions(mockTransactions);
+    if (!account?.address) return;
+    
+    try {
+      const realTransactions = await getTransactionHistory(
+        account.address,
+        process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS
+      );
+      
+      const formattedTransactions = realTransactions.map(tx => ({
+        type: tx.type,
+        amount: tx.amount,
+        usdValue: (parseFloat(tx.amount) * tokenPrice).toFixed(2),
+        date: tx.date,
+        hash: `${tx.hash.substring(0, 10)}...`,
+        status: tx.status,
+        fullHash: tx.hash,
+        timestamp: tx.timestamp
+      }));
+      
+      setTransactions(formattedTransactions);
+    } catch (error) {
+      console.error('Error loading transaction history:', error);
+      setTransactions([]);
+    }
   };
 
   const formatBalance = (balance) => {
@@ -180,6 +185,23 @@ export default function Wallet() {
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        {/* YouTube Tutorial */}
+        <div className="card">
+          <h2 className="section-title">How to Import Tokens to MetaMask</h2>
+          <div style={{textAlign: 'center', marginBottom: '1.5rem'}}>
+            <iframe 
+              width="100%" 
+              height="315" 
+              src="https://www.youtube.com/embed/6Gf_kRE4MJU" 
+              title="How to Add Custom Tokens to MetaMask" 
+              frameBorder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen
+              style={{borderRadius: '12px', maxWidth: '560px'}}
+            />
           </div>
         </div>
 
