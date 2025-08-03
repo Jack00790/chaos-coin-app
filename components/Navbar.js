@@ -10,7 +10,13 @@ export default function Navbar() {
   return (
     <>
       <nav className="navbar">
-        <div className="navbar__title">Chaos Coin</div>
+        <div className="navbar__logo">
+          <img 
+            src="/chaos-coin-logo.png" 
+            alt="Chaos Coin" 
+            className="navbar__logo-img"
+          />
+        </div>
         <div className="navbar__button">
           <ConnectButton client={client} className="connect-btn" />
         </div>

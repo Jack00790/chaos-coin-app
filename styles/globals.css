@@ -35,6 +35,17 @@ html, body {
   z-index: 100;
 }
 
+.navbar__logo {
+  display: flex;
+  align-items: center;
+}
+
+.navbar__logo-img {
+  height: 50px;
+  width: auto;
+  max-width: 200px;
+}
+
 .navbar__title {
   font-size: 1.8rem;
   font-weight: 700;
@@ -336,36 +347,68 @@ html, body {
   margin-bottom: 2rem;
 }
 
-.movers-grid {
+.movers-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.movers-column {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.movers-subtitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.movers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .mover-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.mover-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 .mover-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.mover-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 
 .mover-symbol {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .mover-name {
   color: #9ca3af;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .mover-price {
@@ -375,63 +418,108 @@ html, body {
 .mover-value {
   font-weight: 600;
   margin-bottom: 0.25rem;
+  font-size: 0.9rem;
 }
 
 .mover-change {
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
 }
 
 .mover-change.positive {
   color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .mover-change.negative {
   color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
-/* News Section */
+/* News Section - Robinhood Style */
 .news-section {
   margin-bottom: 2rem;
 }
 
-.news-grid {
+.news-grid-robinhood {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
-.news-item {
-  padding: 1.5rem;
+.news-card {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  border-radius: 16px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.news-item:hover {
+.news-card:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.news-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.news-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.news-card:hover .news-image {
+  transform: scale(1.05);
+}
+
+.news-content {
+  padding: 1.5rem;
 }
 
 .news-title {
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   color: #e5e7eb;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .news-excerpt {
   color: #9ca3af;
   font-size: 0.9rem;
   line-height: 1.5;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .news-meta {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
+}
+
+.news-timestamp {
   font-size: 0.8rem;
   color: #6b7280;
+  font-weight: 500;
 }
 
 /* Price Display */
@@ -498,6 +586,15 @@ html, body {
     grid-template-columns: 1fr;
   }
   
+  .movers-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .news-grid-robinhood {
+    grid-template-columns: 1fr;
+  }
+  
   .main-content {
     padding: 1rem;
     margin-bottom: 100px;
@@ -520,6 +617,10 @@ html, body {
     width: 100%;
     max-width: 300px;
     justify-content: center;
+  }
+  
+  .navbar__logo-img {
+    height: 40px;
   }
 }
 

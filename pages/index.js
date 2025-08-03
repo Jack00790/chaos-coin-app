@@ -12,7 +12,8 @@ export default function Home() {
     volume24h: "Loading...",
     price: 0
   });
-  const [movers, setMovers] = useState([]);
+  const [gainers, setGainers] = useState([]);
+  const [losers, setLosers] = useState([]);
   const [news, setNews] = useState([]);
   const [portfolioChange, setPortfolioChange] = useState({ amount: 0, percentage: 0 });
 
@@ -52,16 +53,32 @@ export default function Home() {
 
   const fetchTopMovers = async () => {
     try {
-      // Using CoinGecko API for top movers
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=5&page=1&sparkline=false'
+      // Fetch top gainers
+      const gainersResponse = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=3&page=1&sparkline=false'
       );
-      const data = await response.json();
-      setMovers(data.map(coin => ({
+      const gainersData = await gainersResponse.json();
+      
+      // Fetch top losers
+      const losersResponse = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=3&page=1&sparkline=false'
+      );
+      const losersData = await losersResponse.json();
+      
+      setGainers(gainersData.map(coin => ({
         symbol: coin.symbol.toUpperCase(),
         name: coin.name,
         price: coin.current_price,
-        change: coin.price_change_percentage_24h
+        change: coin.price_change_percentage_24h,
+        icon: coin.image
+      })));
+      
+      setLosers(losersData.map(coin => ({
+        symbol: coin.symbol.toUpperCase(),
+        name: coin.name,
+        price: coin.current_price,
+        change: coin.price_change_percentage_24h,
+        icon: coin.image
       })));
     } catch (error) {
       console.error("Error fetching movers:", error);
@@ -70,27 +87,68 @@ export default function Home() {
 
   const fetchCryptoNews = async () => {
     try {
-      // Using CryptoPanic API or similar
-      const sampleNews = [
-        {
-          title: "Bitcoin Reaches New All-Time High",
-          excerpt: "Bitcoin price surges past previous records amid institutional adoption...",
-          timestamp: "2 hours ago"
-        },
-        {
-          title: "Ethereum 2.0 Update Shows Promise",
-          excerpt: "Latest developments in Ethereum's proof-of-stake transition...",
-          timestamp: "4 hours ago"
-        },
-        {
-          title: "DeFi Market Continues Growth",
-          excerpt: "Decentralized finance protocols see increased activity...",
-          timestamp: "6 hours ago"
-        }
-      ];
-      setNews(sampleNews);
+      // Using RSS2JSON service for CoinTelegraph news
+      const response = await fetch(
+        'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6'
+      );
+      const data = await response.json();
+      
+      if (data.status === 'ok' && data.items) {
+        const articles = data.items.map(item => ({
+          title: item.title,
+          excerpt: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) + '...',
+          timestamp: new Date(item.pubDate).toLocaleDateString(),
+          image: item.thumbnail || item.enclosure?.link || 'https://via.placeholder.com/300x200?text=Crypto+News',
+          url: item.link
+        }));
+        setNews(articles);
+      } else {
+        // Fallback news with placeholder images
+        const fallbackNews = [
+          {
+            title: "Bitcoin Reaches New All-Time High",
+            excerpt: "Bitcoin price surges past previous records amid institutional adoption and growing mainstream acceptance...",
+            timestamp: "2 hours ago",
+            image: "https://via.placeholder.com/300x200?text=Bitcoin+ATH",
+            url: "#"
+          },
+          {
+            title: "Ethereum 2.0 Update Shows Promise",
+            excerpt: "Latest developments in Ethereum's proof-of-stake transition show significant improvements in scalability...",
+            timestamp: "4 hours ago",
+            image: "https://via.placeholder.com/300x200?text=Ethereum+2.0",
+            url: "#"
+          },
+          {
+            title: "DeFi Market Continues Growth",
+            excerpt: "Decentralized finance protocols see increased activity as total value locked reaches new milestones...",
+            timestamp: "6 hours ago",
+            image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
+            url: "#"
+          }
+        ];
+        setNews(fallbackNews);
+      }
     } catch (error) {
       console.error("Error fetching news:", error);
+      // Set fallback news on error
+      const fallbackNews = [
+        {
+          title: "Bitcoin Market Analysis",
+          excerpt: "Technical analysis shows strong support levels as institutional interest continues to grow...",
+          timestamp: "1 hour ago",
+          image: "https://via.placeholder.com/300x200?text=Bitcoin+Analysis",
+          url: "#"
+        },
+        {
+          title: "Altcoin Season Predictions",
+          excerpt: "Market experts discuss the potential for altcoin momentum in the current market cycle...",
+          timestamp: "3 hours ago",
+          image: "https://via.placeholder.com/300x200?text=Altcoin+Season",
+          url: "#"
+        }
+      ];
+      setNews(fallbackNews);
     }
   };
 
@@ -158,14 +216,17 @@ export default function Home() {
             <a href="https://twitter.com/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>🐦</span> Twitter
             </a>
-            <a href="https://t.me/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://t.me/chaoscoinofficial" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>📱</span> Telegram
             </a>
-            <a href="https://discord.gg/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://discord.gg/chaoscoinofficial" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>💬</span> Discord
             </a>
-            <a href="https://youtube.com/@chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>📺</span> YouTube
+            <a href="https://instagram.com/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+              <span>📷</span> Instagram
+            </a>
+            <a href="https://tiktok.com/@chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+              <span>🎵</span> TikTok
             </a>
           </div>
         </div>
@@ -173,36 +234,79 @@ export default function Home() {
         {/* Top Movers */}
         <div className="card movers-section">
           <h2 className="section-title">Today's Top Movers</h2>
-          <div className="movers-grid">
-            {movers.map((mover, index) => (
-              <div key={index} className="mover-item">
-                <div className="mover-info">
-                  <div>
-                    <div className="mover-symbol">{mover.symbol}</div>
-                    <div className="mover-name">{mover.name}</div>
+          <div className="movers-container">
+            {/* Top Gainers */}
+            <div className="movers-column">
+              <h3 className="movers-subtitle text-green">🚀 Top Gainers</h3>
+              <div className="movers-list">
+                {gainers.map((gainer, index) => (
+                  <div key={index} className="mover-item">
+                    <div className="mover-info">
+                      <img src={gainer.icon} alt={gainer.symbol} className="mover-icon" />
+                      <div>
+                        <div className="mover-symbol">{gainer.symbol}</div>
+                        <div className="mover-name">{gainer.name}</div>
+                      </div>
+                    </div>
+                    <div className="mover-price">
+                      <div className="mover-value">${gainer.price.toFixed(4)}</div>
+                      <div className="mover-change positive">
+                        +{gainer.change.toFixed(2)}%
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="mover-price">
-                  <div className="mover-value">${mover.price.toFixed(4)}</div>
-                  <div className={`mover-change ${mover.change >= 0 ? 'positive' : 'negative'}`}>
-                    {mover.change >= 0 ? '+' : ''}{mover.change.toFixed(2)}%
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Top Losers */}
+            <div className="movers-column">
+              <h3 className="movers-subtitle text-red">📉 Top Losers</h3>
+              <div className="movers-list">
+                {losers.map((loser, index) => (
+                  <div key={index} className="mover-item">
+                    <div className="mover-info">
+                      <img src={loser.icon} alt={loser.symbol} className="mover-icon" />
+                      <div>
+                        <div className="mover-symbol">{loser.symbol}</div>
+                        <div className="mover-name">{loser.name}</div>
+                      </div>
+                    </div>
+                    <div className="mover-price">
+                      <div className="mover-value">${loser.price.toFixed(4)}</div>
+                      <div className="mover-change negative">
+                        {loser.change.toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Crypto News */}
         <div className="card news-section">
           <h2 className="section-title">Latest Crypto News</h2>
-          <div className="news-grid">
+          <div className="news-grid-robinhood">
             {news.map((article, index) => (
-              <div key={index} className="news-item">
-                <h3 className="news-title">{article.title}</h3>
-                <p className="news-excerpt">{article.excerpt}</p>
-                <div className="news-meta">
-                  <span>{article.timestamp}</span>
+              <div key={index} className="news-card">
+                <div className="news-image-container">
+                  <img 
+                    src={article.image} 
+                    alt={article.title}
+                    className="news-image"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/300x200?text=Crypto+News';
+                    }}
+                  />
+                </div>
+                <div className="news-content">
+                  <h3 className="news-title">{article.title}</h3>
+                  <p className="news-excerpt">{article.excerpt}</p>
+                  <div className="news-meta">
+                    <span className="news-timestamp">{article.timestamp}</span>
+                  </div>
                 </div>
               </div>
             ))}
