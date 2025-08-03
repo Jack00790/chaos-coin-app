@@ -10,7 +10,7 @@ export default function Navigation() {
     { href: "/buy", label: "Buy", icon: "🛒" },
     { href: "/swap", label: "Swap", icon: "⇄" },
     { href: "/news", label: "News", icon: "📰" },
-    { href: "/wallet", label: "Wallet", icon: "💼" }
+    { href: "/wallet", label: "Wallet", icon: "" }
   ];
 
   return (

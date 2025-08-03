@@ -1,5 +1,22 @@
 /* Global styles for Chaos Coin DApp - Professional DeFi Design */
 
+/* Custom wallet icon */
+.nav-item[href="/wallet"] .nav-icon {
+  position: relative;
+  font-style: normal;
+}
+
+.nav-item[href="/wallet"] .nav-icon::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 16px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M18.5 2H5.5C4.11929 2 3 3.11929 3 4.5V19.5C3 20.8807 4.11929 22 5.5 22H18.5C19.8807 22 21 20.8807 21 19.5V4.5C21 3.11929 19.8807 2 18.5 2ZM5.5 4H18.5C18.7761 4 19 4.22386 19 4.5V7H5V4.5C5 4.22386 5.22386 4 5.5 4ZM19 19.5C19 19.7761 18.7761 20 18.5 20H5.5C5.22386 20 5 19.7761 5 19.5V9H19V19.5ZM16 13C16 14.1046 15.1046 15 14 15C12.8954 15 12 14.1046 12 13C12 11.8954 12.8954 11 14 11C15.1046 11 16 11.8954 16 13Z'/%3E%3C/svg%3E") no-repeat center;
+  mask-size: contain;
+  vertical-align: middle;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
