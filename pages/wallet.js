@@ -1,0 +1,205 @@
+
+import React, { useState, useEffect } from "react";
+import { useActiveAccount, useReadContract } from "thirdweb/react";
+import { balanceOf } from "thirdweb/extensions/erc20";
+import Navbar from "../components/Navbar";
+import { chaosCoinContract } from "../lib/contract";
+
+export default function Wallet() {
+  const account = useActiveAccount();
+  const [transactions, setTransactions] = useState([]);
+  const [tokenPrice, setTokenPrice] = useState(0);
+
+  // Get user's CHAOS balance
+  const { data: balance, isLoading: balanceLoading } = useReadContract({
+    contract: chaosCoinContract,
+    method: balanceOf,
+    params: account ? [account.address] : undefined,
+  });
+
+  useEffect(() => {
+    if (account) {
+      fetchTokenPrice();
+      fetchTransactionHistory();
+    }
+  }, [account]);
+
+  const fetchTokenPrice = async () => {
+    try {
+      const response = await fetch(
+        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
+      );
+      const data = await response.json();
+      
+      if (data.pairs && data.pairs.length > 0) {
+        setTokenPrice(parseFloat(data.pairs[0].priceUsd || "0"));
+      } else {
+        setTokenPrice(0.001);
+      }
+    } catch (error) {
+      console.error("Error fetching token price:", error);
+      setTokenPrice(0.001);
+    }
+  };
+
+  const fetchTransactionHistory = async () => {
+    // In a real app, you'd fetch from blockchain or your backend
+    // For demo, we'll show sample transactions
+    const sampleTransactions = [
+      {
+        type: "Buy",
+        amount: "1000.00",
+        usdValue: "1.50",
+        date: "2024-01-15 14:30",
+        hash: "0x1234...5678",
+        status: "Completed"
+      },
+      {
+        type: "Sell",
+        amount: "500.00",
+        usdValue: "0.75",
+        date: "2024-01-14 09:15",
+        hash: "0x2345...6789",
+        status: "Completed"
+      },
+      {
+        type: "Buy",
+        amount: "2000.00",
+        usdValue: "2.80",
+        date: "2024-01-13 16:45",
+        hash: "0x3456...7890",
+        status: "Completed"
+      }
+    ];
+    setTransactions(sampleTransactions);
+  };
+
+  const formatBalance = (balance) => {
+    if (!balance) return "0.00";
+    const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
+    return tokens.toFixed(2);
+  };
+
+  const calculateUSDValue = (tokenAmount) => {
+    return (parseFloat(tokenAmount) * tokenPrice).toFixed(2);
+  };
+
+  if (!account) {
+    return (
+      <div className="app-container">
+        <Navbar />
+        <main className="main-content">
+          <h1 className="page-title">My Wallet</h1>
+          <div className="card text-center">
+            <h2 className="section-title">Connect Your Wallet</h2>
+            <p className="text-gray mb-3">Please connect your wallet to view your CHAOS tokens and transaction history</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-container">
+      <Navbar />
+      <main className="main-content">
+        <h1 className="page-title">My Wallet</h1>
+
+        {/* Balance Overview */}
+        <div className="card">
+          <h2 className="section-title">CHAOS Token Balance</h2>
+          <div className="balance-card text-center">
+            <div className="balance-amount">
+              {balanceLoading ? "Loading..." : formatBalance(balance)} CHAOS
+            </div>
+            <div className="text-gray">
+              ≈ ${balanceLoading ? "0.00" : calculateUSDValue(formatBalance(balance))} USD
+            </div>
+            <div style={{marginTop: '1rem', fontSize: '0.9rem', color: '#9ca3af'}}>
+              <p>Wallet Address: {account.address.slice(0, 6)}...{account.address.slice(-4)}</p>
+              <p>Token Price: ${tokenPrice.toFixed(6)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Transaction History */}
+        <div className="card">
+          <h2 className="section-title">Transaction History</h2>
+          <div className="transaction-history">
+            {transactions.length === 0 ? (
+              <p className="text-gray text-center">No transactions found</p>
+            ) : (
+              transactions.map((tx, index) => (
+                <div key={index} className="transaction-item">
+                  <div className="transaction-info">
+                    <div className="transaction-type">
+                      <span style={{
+                        color: tx.type === 'Buy' ? '#10b981' : '#ef4444',
+                        fontWeight: 'bold'
+                      }}>
+                        {tx.type === 'Buy' ? '↗️' : '↘️'} {tx.type}
+                      </span>
+                    </div>
+                    <div className="transaction-date">{tx.date}</div>
+                    <div style={{fontSize: '0.8rem', color: '#6b7280'}}>
+                      {tx.hash}
+                    </div>
+                  </div>
+                  <div className="transaction-amount">
+                    <div>{tx.amount} CHAOS</div>
+                    <div style={{fontSize: '0.9rem', color: '#9ca3af'}}>
+                      ${tx.usdValue}
+                    </div>
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: tx.status === 'Completed' ? '#10b981' : '#ef4444'
+                    }}>
+                      {tx.status}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Tutorial Section */}
+        <div className="card">
+          <h2 className="section-title">Don't See Your Tokens?</h2>
+          <p className="text-gray mb-3" style={{textAlign: 'center'}}>
+            If you don't see your CHAOS tokens in your wallet, you may need to add the token address manually.
+          </p>
+          
+          <div className="video-container">
+            <iframe
+              className="video-iframe"
+              src="https://www.youtube.com/embed/6Gf_kRE4MJU"
+              title="How to Add Custom Tokens to MetaMask"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+
+          <div style={{marginTop: '2rem', padding: '1rem', background: 'rgba(16,185,129,0.1)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)'}}>
+            <h3 style={{color: '#10b981', marginBottom: '1rem'}}>CHAOS Token Information:</h3>
+            <div style={{display: 'grid', gap: '0.5rem', fontSize: '0.9rem'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <span>Token Address:</span>
+                <span style={{fontFamily: 'monospace'}}>{process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <span>Token Symbol:</span>
+                <span>CHAOS</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <span>Decimals:</span>
+                <span>18</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

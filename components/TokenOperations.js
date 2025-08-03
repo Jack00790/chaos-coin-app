@@ -1,17 +1,16 @@
+
 import React, { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { TransactionButton } from "thirdweb/react";
 import { mintTo, transfer } from "thirdweb/extensions/erc20";
 import { toWei } from "thirdweb/utils";
 import { chaosCoinContract } from "../lib/contract";
-import FiatToBuy from "./FiatToBuy";
 
 export default function TokenOperations() {
   const [buyAmount, setBuyAmount] = useState("");
   const [sellAmount, setSellAmount] = useState("");
   const account = useActiveAccount();
 
-  // Parse buy amount to wei (18 decimals)
   const buyParsed = (() => {
     try {
       const num = parseFloat(buyAmount);
@@ -21,7 +20,6 @@ export default function TokenOperations() {
     }
   })();
 
-  // Parse sell amount to wei (18 decimals)
   const sellParsed = (() => {
     try {
       const num = parseFloat(sellAmount);
@@ -32,18 +30,15 @@ export default function TokenOperations() {
   })();
 
   return (
-    <div>
+    <div className="card">
       <h2 className="section-title">Token Operations</h2>
 
-      {/* Fiat Buy Section */}
-      <FiatToBuy />
-
-      {/* Crypto Buy Section */}
-      <div className="crypto-buy-section">
-        <h3 className="section-title">Buy with Crypto (Mint)</h3>
+      {/* Buy Section */}
+      <div className="form-section">
+        <h3 className="section-title">Mint CHAOS Tokens</h3>
         {account ? (
           <div className="form-group">
-            <label className="form-label">CHAOS Amount to Mint</label>
+            <label className="form-label">Amount to Mint</label>
             <input
               type="number"
               className="form-input"
@@ -68,22 +63,23 @@ export default function TokenOperations() {
                 setBuyAmount("");
               }}
               disabled={!buyParsed || buyParsed <= 0n}
-              className="action-btn buy-btn"
+              className="btn btn-primary"
+              style={{width: '100%', marginTop: '1rem'}}
             >
               Mint {buyAmount || "0"} CHAOS
             </TransactionButton>
           </div>
         ) : (
-          <p className="account-message">Connect your wallet to mint tokens.</p>
+          <p className="text-gray">Connect your wallet to mint tokens.</p>
         )}
       </div>
 
       {/* Sell Section */}
-      <div className="sell-section">
+      <div className="form-section">
         <h3 className="section-title">Sell CHAOS Tokens</h3>
         {account ? (
           <div className="form-group">
-            <label className="form-label">CHAOS Amount to Sell</label>
+            <label className="form-label">Amount to Sell</label>
             <input
               type="number"
               className="form-input"
@@ -108,13 +104,14 @@ export default function TokenOperations() {
                 setSellAmount("");
               }}
               disabled={!sellParsed || sellParsed <= 0n}
-              className="action-btn sell-btn"
+              className="btn btn-secondary"
+              style={{width: '100%', marginTop: '1rem'}}
             >
               Sell {sellAmount || "0"} CHAOS
             </TransactionButton>
           </div>
         ) : (
-          <p className="account-message">Connect your wallet to sell tokens.</p>
+          <p className="text-gray">Connect your wallet to sell tokens.</p>
         )}
       </div>
     </div>

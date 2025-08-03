@@ -1,132 +1,280 @@
 
 import React, { useState, useEffect } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import Navbar from "../components/Navbar";
 
 export default function News() {
+  const account = useActiveAccount();
   const [posts, setPosts] = useState([]);
-  const [cryptoNews, setCryptoNews] = useState([]);
+  const [newPost, setNewPost] = useState({ content: "", isPinned: false });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  // Admin wallet address - replace with your actual admin wallet
+  const ADMIN_WALLET = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
 
   useEffect(() => {
-    // In a real app, you'd fetch posts from your backend/database
-    // For now, using localStorage to persist admin posts
-    const savedPosts = localStorage.getItem('chaosCoinPosts');
-    if (savedPosts) {
-      setPosts(JSON.parse(savedPosts));
+    if (account) {
+      setIsAdmin(account.address.toLowerCase() === ADMIN_WALLET?.toLowerCase());
     }
-
-    // Fetch crypto news (you can replace with actual news API)
+    fetchPosts();
     fetchCryptoNews();
-  }, []);
+  }, [account]);
 
-  const fetchCryptoNews = async () => {
-    // Mock crypto news - replace with actual API
-    const mockNews = [
+  const fetchPosts = () => {
+    // In a real app, fetch from your backend/database
+    const samplePosts = [
       {
         id: 1,
-        title: "Bitcoin Reaches New Heights",
-        summary: "Bitcoin continues its bullish trend...",
+        content: "🚀 Chaos Coin launch is live! Welcome to the future of DeFi!",
+        author: "Chaos Team",
         timestamp: new Date().toISOString(),
-        source: "CoinDesk"
-      },
-      {
-        id: 2,
-        title: "DeFi Market Update",
-        summary: "Decentralized finance shows strong growth...",
-        timestamp: new Date().toISOString(),
-        source: "CoinTelegraph"
+        isPinned: true,
+        type: "admin",
+        likes: 42,
+        shares: 15
       }
     ];
-    setCryptoNews(mockNews);
+    setPosts(samplePosts);
   };
 
-  // Separate pinned and regular posts
-  const pinnedPosts = posts.filter(post => post.pinned);
-  const regularPosts = posts.filter(post => !post.pinned);
+  const fetchCryptoNews = async () => {
+    // Sample crypto news - in production, use real API
+    const cryptoNews = [
+      {
+        id: 2,
+        content: "Bitcoin reaches new milestone as institutional adoption continues to grow",
+        author: "CryptoNews",
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        isPinned: false,
+        type: "news",
+        source: "External"
+      },
+      {
+        id: 3,
+        content: "DeFi protocols see massive growth in total value locked",
+        author: "DeFi Pulse",
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
+        isPinned: false,
+        type: "news",
+        source: "External"
+      }
+    ];
+    
+    setPosts(prev => [...prev, ...cryptoNews]);
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPost.content.trim()) return;
+    
+    const post = {
+      id: Date.now(),
+      content: newPost.content,
+      author: "Chaos Team",
+      timestamp: new Date().toISOString(),
+      isPinned: newPost.isPinned,
+      type: "admin",
+      likes: 0,
+      shares: 0
+    };
+
+    setPosts(prev => [post, ...prev]);
+    setNewPost({ content: "", isPinned: false });
+    setShowAdminPanel(false);
+  };
+
+  const togglePin = (postId) => {
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, isPinned: !post.isPinned }
+        : post
+    ));
+  };
+
+  const deletePost = (postId) => {
+    setPosts(prev => prev.filter(post => post.id !== postId));
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    return "Now";
+  };
+
+  // Sort posts: pinned first, then by timestamp
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
 
   return (
     <div className="app-container">
       <Navbar />
       <main className="main-content">
-        <h1 className="title">Chaos Coin News & Updates</h1>
-        
-        {/* Pinned Posts */}
-        {pinnedPosts.length > 0 && (
-          <div className="card">
-            <h2 className="section-title">📌 Pinned Announcements</h2>
-            <div className="news-feed">
-              {pinnedPosts.map(post => (
-                <div key={post.id} className="news-item pinned-post">
-                  <div className="news-header">
-                    <strong>{post.author}</strong>
-                    <span className="pin-badge">📌 Pinned</span>
-                  </div>
-                  <div className="news-content">
-                    <p>{post.text}</p>
-                    {post.media && (
-                      <div className="news-media">
-                        {post.mediaType === 'image' ? (
-                          <img src={post.media} alt="Post media" className="news-image" />
-                        ) : (
-                          <video src={post.media} controls className="news-video" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="news-timestamp">
-                    {new Date(post.timestamp).toLocaleString()}
+        <h1 className="page-title">News & Updates</h1>
+
+        {/* Admin Panel */}
+        {isAdmin && (
+          <div className="card admin-panel">
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+              <h2 className="section-title">Admin Panel</h2>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowAdminPanel(!showAdminPanel)}
+              >
+                {showAdminPanel ? 'Hide' : 'Create Post'}
+              </button>
+            </div>
+
+            {showAdminPanel && (
+              <div className="post-creator">
+                <textarea
+                  className="post-textarea"
+                  placeholder="What's happening with Chaos Coin? Share updates, announcements, or thoughts..."
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                />
+                
+                <div className="post-actions">
+                  <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                    <input
+                      type="checkbox"
+                      checked={newPost.isPinned}
+                      onChange={(e) => setNewPost({...newPost, isPinned: e.target.checked})}
+                    />
+                    📌 Pin this post
+                  </label>
+                  
+                  <div style={{display: 'flex', gap: '1rem'}}>
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => setShowAdminPanel(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleCreatePost}
+                      disabled={!newPost.content.trim()}
+                    >
+                      Post Update
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Official Updates */}
-        {regularPosts.length > 0 && (
-          <div className="card">
-            <h2 className="section-title">Official Updates</h2>
-            <div className="news-feed">
-              {regularPosts.map(post => (
-                <div key={post.id} className="news-item">
-                  <div className="news-header">
-                    <strong>{post.author}</strong>
-                  </div>
-                  <div className="news-content">
-                    <p>{post.text}</p>
-                    {post.media && (
-                      <div className="news-media">
-                        {post.mediaType === 'image' ? (
-                          <img src={post.media} alt="Post media" className="news-image" />
-                        ) : (
-                          <video src={post.media} controls className="news-video" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="news-timestamp">
-                    {new Date(post.timestamp).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Crypto News */}
+        {/* News Feed */}
         <div className="card">
-          <h2 className="section-title">Crypto Market News</h2>
-          <div className="news-feed">
-            {cryptoNews.map(article => (
-              <div key={article.id} className="news-item crypto-news">
-                <div className="news-header">
-                  <strong>{article.source}</strong>
+          <h2 className="section-title">Latest Updates</h2>
+          
+          <div style={{display: 'grid', gap: '1rem'}}>
+            {sortedPosts.map((post) => (
+              <div 
+                key={post.id} 
+                style={{
+                  padding: '1.5rem',
+                  background: post.isPinned 
+                    ? 'rgba(16, 185, 129, 0.1)' 
+                    : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${post.isPinned 
+                    ? 'rgba(16, 185, 129, 0.3)' 
+                    : 'rgba(255, 255, 255, 0.1)'}`,
+                  borderRadius: '12px',
+                  position: 'relative'
+                }}
+              >
+                {/* Pin indicator */}
+                {post.isPinned && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    background: '#10b981',
+                    color: '#000',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold'
+                  }}>
+                    📌 PINNED
+                  </div>
+                )}
+
+                {/* Post header */}
+                <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem'}}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: post.type === 'admin' 
+                      ? 'linear-gradient(45deg, #10b981, #34d399)' 
+                      : 'rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem'
+                  }}>
+                    {post.type === 'admin' ? '👑' : '📰'}
+                  </div>
+                  <div>
+                    <div style={{fontWeight: 'bold'}}>{post.author}</div>
+                    <div style={{fontSize: '0.9rem', color: '#9ca3af'}}>
+                      {formatTime(post.timestamp)}
+                      {post.source && ` • ${post.source}`}
+                    </div>
+                  </div>
                 </div>
-                <div className="news-content">
-                  <h3>{article.title}</h3>
-                  <p>{article.summary}</p>
+
+                {/* Post content */}
+                <div style={{marginBottom: '1rem', lineHeight: '1.6'}}>
+                  {post.content}
                 </div>
-                <div className="news-timestamp">
-                  {new Date(article.timestamp).toLocaleString()}
+
+                {/* Post actions */}
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <div style={{display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#9ca3af'}}>
+                    {post.likes !== undefined && (
+                      <span>❤️ {post.likes}</span>
+                    )}
+                    {post.shares !== undefined && (
+                      <span>🔄 {post.shares}</span>
+                    )}
+                  </div>
+
+                  {/* Admin actions */}
+                  {isAdmin && post.type === 'admin' && (
+                    <div style={{display: 'flex', gap: '0.5rem'}}>
+                      <button
+                        onClick={() => togglePin(post.id)}
+                        className="btn btn-secondary"
+                        style={{padding: '0.25rem 0.5rem', fontSize: '0.8rem'}}
+                      >
+                        {post.isPinned ? 'Unpin' : 'Pin'}
+                      </button>
+                      <button
+                        onClick={() => deletePost(post.id)}
+                        className="btn"
+                        style={{
+                          padding: '0.25rem 0.5rem', 
+                          fontSize: '0.8rem',
+                          background: 'rgba(239, 68, 68, 0.2)',
+                          color: '#fca5a5'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
