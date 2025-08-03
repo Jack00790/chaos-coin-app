@@ -79,20 +79,47 @@ html, body {
   z-index: 100;
 }
 
-.navbar__logo {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.uniswap-container {
+  margin: 2rem 0;
+  text-align: center;
 }
 
-.navbar__logo-img {
-  width: 40px;
-  height: 40px;
-  margin-right: 12px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: linear-gradient(135deg, #10b981, #059669);
-  padding: 2px;
+.swap-info {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #10b981;
+}
+
+.info-value {
+  color: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Professional navigation styling */
@@ -111,15 +138,6 @@ html, body {
 .navigation__item.active {
   background: rgba(16, 185, 129, 0.2);
   border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.navbar__title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  background: linear-gradient(45deg, #10b981, #34d399);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .connect-btn {
@@ -861,7 +879,7 @@ html, body {
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 4px 20px rgba(16, 185, 185, 129, 0.1);
 }
 
 .admin-badge {
