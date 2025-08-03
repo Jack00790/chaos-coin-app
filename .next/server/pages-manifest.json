@@ -3,8 +3,6 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
-  "/buy": "pages/buy.js",
-  "/swap": "pages/swap.js",
   "/news": "pages/news.js",
   "/wallet": "pages/wallet.js"
 }
