@@ -2,25 +2,31 @@
 import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
-import Navbar from "../components/Navbar";
 import { chaosCoinContract } from "../lib/contract";
+import Navbar from "../components/Navbar";
 
 export default function Wallet() {
   const account = useActiveAccount();
   const [transactions, setTransactions] = useState([]);
-  const [tokenPrice, setTokenPrice] = useState(0);
+  const [tokenPrice, setTokenPrice] = useState(0.001);
 
-  // Get user's CHAOS balance
-  const { data: balance, isLoading: balanceLoading } = useReadContract({
-    contract: chaosCoinContract,
-    method: balanceOf,
-    params: account ? [account.address] : undefined,
-  });
+  // Secure balance reading
+  const { 
+    data: balance, 
+    isLoading: loadingBalance, 
+    error: balanceError 
+  } = useReadContract(
+    balanceOf,
+    {
+      contract: chaosCoinContract,
+      address: account?.address || "0x0000000000000000000000000000000000000000",
+    }
+  );
 
   useEffect(() => {
+    fetchTokenPrice();
     if (account) {
-      fetchTokenPrice();
-      fetchTransactionHistory();
+      loadTransactionHistory();
     }
   }, [account]);
 
@@ -32,7 +38,8 @@ export default function Wallet() {
       const data = await response.json();
       
       if (data.pairs && data.pairs.length > 0) {
-        setTokenPrice(parseFloat(data.pairs[0].priceUsd || "0"));
+        const price = parseFloat(data.pairs[0].priceUsd || "0");
+        setTokenPrice(price > 0 ? price : 0.001);
       } else {
         setTokenPrice(0.001);
       }
@@ -42,42 +49,34 @@ export default function Wallet() {
     }
   };
 
-  const fetchTransactionHistory = async () => {
-    // In a real app, you'd fetch from blockchain or your backend
-    // For demo, we'll show sample transactions
-    const sampleTransactions = [
+  const loadTransactionHistory = async () => {
+    // In a real app, this would fetch from your backend API
+    // For demo purposes, we'll show mock transactions
+    const mockTransactions = [
       {
-        type: "Buy",
-        amount: "1000.00",
-        usdValue: "1.50",
-        date: "2024-01-15 14:30",
-        hash: "0x1234...5678",
-        status: "Completed"
+        type: 'Buy',
+        amount: '1000.00',
+        usdValue: '1.00',
+        date: new Date().toLocaleDateString(),
+        hash: `0x${Math.random().toString(16).substr(2, 8)}...`,
+        status: 'Completed'
       },
       {
-        type: "Sell",
-        amount: "500.00",
-        usdValue: "0.75",
-        date: "2024-01-14 09:15",
-        hash: "0x2345...6789",
-        status: "Completed"
-      },
-      {
-        type: "Buy",
-        amount: "2000.00",
-        usdValue: "2.80",
-        date: "2024-01-13 16:45",
-        hash: "0x3456...7890",
-        status: "Completed"
+        type: 'Buy',
+        amount: '500.00',
+        usdValue: '0.50',
+        date: new Date(Date.now() - 86400000).toLocaleDateString(),
+        hash: `0x${Math.random().toString(16).substr(2, 8)}...`,
+        status: 'Completed'
       }
     ];
-    setTransactions(sampleTransactions);
+    setTransactions(mockTransactions);
   };
 
   const formatBalance = (balance) => {
-    if (!balance) return "0.00";
-    const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
-    return tokens.toFixed(2);
+    if (!balance) return "0";
+    const balanceInEther = Number(balance) / 10**18;
+    return balanceInEther.toFixed(2);
   };
 
   const calculateUSDValue = (tokenAmount) => {
@@ -92,7 +91,7 @@ export default function Wallet() {
           <h1 className="page-title">My Wallet</h1>
           <div className="card text-center">
             <h2 className="section-title">Connect Your Wallet</h2>
-            <p className="text-gray mb-3">Please connect your wallet to view your CHAOS tokens and transaction history</p>
+            <p className="text-gray">Please connect your wallet to view your CHAOS tokens</p>
           </div>
         </main>
       </div>
@@ -105,19 +104,40 @@ export default function Wallet() {
       <main className="main-content">
         <h1 className="page-title">My Wallet</h1>
 
-        {/* Balance Overview */}
+        {/* Account Summary */}
         <div className="card">
-          <h2 className="section-title">CHAOS Token Balance</h2>
-          <div className="balance-card text-center">
-            <div className="balance-amount">
-              {balanceLoading ? "Loading..." : formatBalance(balance)} CHAOS
+          <h2 className="section-title">Account Summary</h2>
+          <div style={{textAlign: 'center', marginBottom: '2rem'}}>
+            <div style={{fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem'}}>
+              Connected Wallet
             </div>
-            <div className="text-gray">
-              ≈ ${balanceLoading ? "0.00" : calculateUSDValue(formatBalance(balance))} USD
+            <div style={{fontFamily: 'monospace', fontSize: '0.9rem', wordBreak: 'break-all'}}>
+              {account.address}
             </div>
-            <div style={{marginTop: '1rem', fontSize: '0.9rem', color: '#9ca3af'}}>
-              <p>Wallet Address: {account.address.slice(0, 6)}...{account.address.slice(-4)}</p>
-              <p>Token Price: ${tokenPrice.toFixed(6)}</p>
+          </div>
+          
+          <div className="market-data">
+            <div className="market-stat">
+              <div className="market-stat-label">CHAOS Balance</div>
+              <div className="market-stat-value">
+                {loadingBalance ? (
+                  <span className="spinner"></span>
+                ) : balanceError ? (
+                  "Error"
+                ) : (
+                  `${formatBalance(balance)} CHAOS`
+                )}
+              </div>
+            </div>
+            <div className="market-stat">
+              <div className="market-stat-label">USD Value</div>
+              <div className="market-stat-value">
+                ${calculateUSDValue(formatBalance(balance))}
+              </div>
+            </div>
+            <div className="market-stat">
+              <div className="market-stat-label">Current Price</div>
+              <div className="market-stat-value">${tokenPrice.toFixed(6)}</div>
             </div>
           </div>
         </div>
@@ -163,30 +183,21 @@ export default function Wallet() {
           </div>
         </div>
 
-        {/* Tutorial Section */}
+        {/* Token Information */}
         <div className="card">
           <h2 className="section-title">Don't See Your Tokens?</h2>
           <p className="text-gray mb-3" style={{textAlign: 'center'}}>
             If you don't see your CHAOS tokens in your wallet, you may need to add the token address manually.
           </p>
           
-          <div className="video-container">
-            <iframe
-              className="video-iframe"
-              src="https://www.youtube.com/embed/6Gf_kRE4MJU"
-              title="How to Add Custom Tokens to MetaMask"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-
           <div style={{marginTop: '2rem', padding: '1rem', background: 'rgba(16,185,129,0.1)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)'}}>
             <h3 style={{color: '#10b981', marginBottom: '1rem'}}>CHAOS Token Information:</h3>
             <div style={{display: 'grid', gap: '0.5rem', fontSize: '0.9rem'}}>
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <span>Token Address:</span>
-                <span style={{fontFamily: 'monospace'}}>{process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}</span>
+                <span style={{fontFamily: 'monospace', wordBreak: 'break-all'}}>
+                  {process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}
+                </span>
               </div>
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <span>Token Symbol:</span>
@@ -195,6 +206,10 @@ export default function Wallet() {
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <span>Decimals:</span>
                 <span>18</span>
+              </div>
+              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                <span>Network:</span>
+                <span>{process.env.NEXT_PUBLIC_CHAIN}</span>
               </div>
             </div>
           </div>
