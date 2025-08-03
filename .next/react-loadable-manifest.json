@@ -53,6 +53,10 @@
       "static/chunks/node_modules_thirdweb_dist_esm_utils_bytecode_resolveImplementation_js.js"
     ]
   },
+  "node_modules/thirdweb/dist/esm/extensions/erc20/drops/read/canClaim.js -> ../../../../utils/units.js": {
+    "id": "node_modules/thirdweb/dist/esm/extensions/erc20/drops/read/canClaim.js -> ../../../../utils/units.js",
+    "files": []
+  },
   "node_modules/thirdweb/dist/esm/extensions/erc20/drops/write/claimTo.js -> ../../../../utils/units.js": {
     "id": "node_modules/thirdweb/dist/esm/extensions/erc20/drops/write/claimTo.js -> ../../../../utils/units.js",
     "files": []
@@ -61,8 +65,24 @@
     "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/approve.js -> ../read/decimals.js",
     "files": []
   },
+  "node_modules/thirdweb/dist/esm/extensions/erc20/write/mintTo.js -> ../read/decimals.js": {
+    "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/mintTo.js -> ../read/decimals.js",
+    "files": []
+  },
+  "node_modules/thirdweb/dist/esm/extensions/erc20/write/sigMint.js -> ../../../utils/extensions/convert-erc20-amount.js": {
+    "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/sigMint.js -> ../../../utils/extensions/convert-erc20-amount.js",
+    "files": []
+  },
   "node_modules/thirdweb/dist/esm/extensions/erc20/write/transfer.js -> ../read/decimals.js": {
     "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/transfer.js -> ../read/decimals.js",
+    "files": []
+  },
+  "node_modules/thirdweb/dist/esm/extensions/erc20/write/transferBatch.js -> ../read/decimals.js": {
+    "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/transferBatch.js -> ../read/decimals.js",
+    "files": []
+  },
+  "node_modules/thirdweb/dist/esm/extensions/erc20/write/transferFrom.js -> ../read/decimals.js": {
+    "id": "node_modules/thirdweb/dist/esm/extensions/erc20/write/transferFrom.js -> ../read/decimals.js",
     "files": []
   },
   "node_modules/thirdweb/dist/esm/extensions/erc721/read/getNFT.js -> ../__generated__/IERC721A/read/ownerOf.js": {
@@ -709,6 +729,10 @@
     "id": "node_modules/thirdweb/dist/esm/utils/contract/fetchContractMetadata.js -> ../../storage/download.js",
     "files": []
   },
+  "node_modules/thirdweb/dist/esm/utils/extensions/convert-erc20-amount.js -> ../../extensions/erc20/read/decimals.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/convert-erc20-amount.js -> ../../extensions/erc20/read/decimals.js",
+    "files": []
+  },
   "node_modules/thirdweb/dist/esm/utils/extensions/drops/fetch-proofs-for-claimers.js -> ../../../contract/contract.js": {
     "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/fetch-proofs-for-claimers.js -> ../../../contract/contract.js",
     "files": []
@@ -745,6 +769,38 @@
     "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-claim-params.js -> ./fetch-proofs-for-claimers.js",
     "files": [
       "static/chunks/node_modules_thirdweb_dist_esm_utils_extensions_drops_fetch-proofs-for-claimers_js.js"
+    ]
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/common/__generated__/IContractMetadata/write/setContractURI.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/common/__generated__/IContractMetadata/write/setContractURI.js",
+    "files": []
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/common/read/getContractMetadata.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/common/read/getContractMetadata.js",
+    "files": []
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc1155/__generated__/IDrop1155/write/setClaimConditions.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc1155/__generated__/IDrop1155/write/setClaimConditions.js",
+    "files": [
+      "static/chunks/node_modules_thirdweb_dist_esm_extensions_erc1155___generated___IDrop1155_write_setClaimCondi-c4a384.js"
+    ]
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc1155/__generated__/IDropSinglePhase1155/write/setClaimConditions.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc1155/__generated__/IDropSinglePhase1155/write/setClaimConditions.js",
+    "files": [
+      "static/chunks/node_modules_thirdweb_dist_esm_extensions_erc1155___generated___IDropSinglePhase1155_write_se-1c116e.js"
+    ]
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc721/__generated__/IDrop/write/setClaimConditions.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc721/__generated__/IDrop/write/setClaimConditions.js",
+    "files": [
+      "static/chunks/node_modules_thirdweb_dist_esm_extensions_erc721___generated___IDrop_write_setClaimConditions_js.js"
+    ]
+  },
+  "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc721/__generated__/IDropSinglePhase/write/setClaimConditions.js": {
+    "id": "node_modules/thirdweb/dist/esm/utils/extensions/drops/get-multicall-set-claim-claim-conditon-transactions.js -> ../../../extensions/erc721/__generated__/IDropSinglePhase/write/setClaimConditions.js",
+    "files": [
+      "static/chunks/node_modules_thirdweb_dist_esm_extensions_erc721___generated___IDropSinglePhase_write_setClai-a7ac12.js"
     ]
   },
   "node_modules/thirdweb/dist/esm/utils/extensions/drops/hash-entry.js -> ../../../contract/contract.js": {
