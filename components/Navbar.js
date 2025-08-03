@@ -16,6 +16,7 @@ export default function Navbar() {
             alt="Chaos Coin" 
             className="navbar__logo-img"
           />
+          <span className="navbar__title">Chaos Coin</span>
         </div>
         <div className="navbar__button">
           <ConnectButton client={client} className="connect-btn" />

@@ -53,35 +53,54 @@ export default function Home() {
 
   const fetchTopMovers = async () => {
     try {
-      // Fetch top gainers
-      const gainersResponse = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=3&page=1&sparkline=false'
+      // Fetch top 100 coins and filter for actual gainers and losers
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
       );
-      const gainersData = await gainersResponse.json();
+      const data = await response.json();
       
-      // Fetch top losers
-      const losersResponse = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=3&page=1&sparkline=false'
-      );
-      const losersData = await losersResponse.json();
-      
-      setGainers(gainersData.map(coin => ({
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        price: coin.current_price,
-        change: coin.price_change_percentage_24h,
-        icon: coin.image
-      })));
-      
-      setLosers(losersData.map(coin => ({
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        price: coin.current_price,
-        change: coin.price_change_percentage_24h,
-        icon: coin.image
-      })));
+      if (data && Array.isArray(data)) {
+        // Filter and sort gainers (positive changes only)
+        const gainersFiltered = data
+          .filter(coin => coin.price_change_percentage_24h > 0)
+          .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+          .slice(0, 3);
+        
+        // Filter and sort losers (negative changes only)
+        const losersFiltered = data
+          .filter(coin => coin.price_change_percentage_24h < 0)
+          .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
+          .slice(0, 3);
+        
+        setGainers(gainersFiltered.map(coin => ({
+          symbol: coin.symbol.toUpperCase(),
+          name: coin.name,
+          price: coin.current_price,
+          change: coin.price_change_percentage_24h,
+          icon: coin.image
+        })));
+        
+        setLosers(losersFiltered.map(coin => ({
+          symbol: coin.symbol.toUpperCase(),
+          name: coin.name,
+          price: coin.current_price,
+          change: coin.price_change_percentage_24h,
+          icon: coin.image
+        })));
+      }
     } catch (error) {
       console.error("Error fetching movers:", error);
+      // Set fallback data if API fails
+      setGainers([
+        { symbol: "BTC", name: "Bitcoin", price: 45000, change: 5.2, icon: "https://via.placeholder.com/32" },
+        { symbol: "ETH", name: "Ethereum", price: 3000, change: 3.8, icon: "https://via.placeholder.com/32" },
+        { symbol: "SOL", name: "Solana", price: 100, change: 7.1, icon: "https://via.placeholder.com/32" }
+      ]);
+      setLosers([
+        { symbol: "ADA", name: "Cardano", price: 0.5, change: -2.1, icon: "https://via.placeholder.com/32" },
+        { symbol: "DOT", name: "Polkadot", price: 7, change: -3.5, icon: "https://via.placeholder.com/32" },
+        { symbol: "LINK", name: "Chainlink", price: 15, change: -1.8, icon: "https://via.placeholder.com/32" }
+      ]);
     }
   };
 
@@ -168,7 +187,6 @@ export default function Home() {
     <div className="app-container">
       <Navbar />
       <main className="main-content">
-        <h1 className="page-title">Chaos Coin Dashboard</h1>
 
         {/* Portfolio Overview */}
         <div className="portfolio-section">
@@ -216,16 +234,16 @@ export default function Home() {
             <a href="https://twitter.com/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>🐦</span> Twitter
             </a>
-            <a href="https://t.me/chaoscoinofficial" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://t.me/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>📱</span> Telegram
             </a>
-            <a href="https://discord.gg/chaoscoinofficial" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://discord.com/channels/1398769618088231042/1398769618692345918" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>💬</span> Discord
             </a>
-            <a href="https://instagram.com/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.instagram.com/Chaos_Coin_/" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>📷</span> Instagram
             </a>
-            <a href="https://tiktok.com/@chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.tiktok.com/@ChaosCoin_" className="social-link" target="_blank" rel="noopener noreferrer">
               <span>🎵</span> TikTok
             </a>
           </div>
@@ -288,25 +306,23 @@ export default function Home() {
         {/* Crypto News */}
         <div className="card news-section">
           <h2 className="section-title">Latest Crypto News</h2>
-          <div className="news-grid-robinhood">
+          <div className="news-twitter-style">
             {news.map((article, index) => (
-              <div key={index} className="news-card">
-                <div className="news-image-container">
+              <div key={index} className="news-card-twitter">
+                <div className="news-image-twitter">
                   <img 
                     src={article.image} 
                     alt={article.title}
-                    className="news-image"
+                    className="news-thumb"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/300x200?text=Crypto+News';
+                      e.target.src = 'https://via.placeholder.com/120x120?text=News';
                     }}
                   />
                 </div>
-                <div className="news-content">
-                  <h3 className="news-title">{article.title}</h3>
-                  <p className="news-excerpt">{article.excerpt}</p>
-                  <div className="news-meta">
-                    <span className="news-timestamp">{article.timestamp}</span>
-                  </div>
+                <div className="news-content-twitter">
+                  <h3 className="news-title-twitter">{article.title}</h3>
+                  <p className="news-excerpt-twitter">{article.excerpt}</p>
+                  <span className="news-timestamp-twitter">{article.timestamp}</span>
                 </div>
               </div>
             ))}
