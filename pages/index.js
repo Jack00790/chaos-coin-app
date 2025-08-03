@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
@@ -37,7 +36,7 @@ export default function Home() {
         `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
       );
       const data = await response.json();
-      
+
       if (data.pairs && data.pairs.length > 0) {
         const pair = data.pairs[0];
         setMarketData({
@@ -58,20 +57,20 @@ export default function Home() {
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
       );
       const data = await response.json();
-      
+
       if (data && Array.isArray(data)) {
         // Filter and sort gainers (positive changes only)
         const gainersFiltered = data
           .filter(coin => coin.price_change_percentage_24h > 0)
           .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
           .slice(0, 3);
-        
+
         // Filter and sort losers (negative changes only)
         const losersFiltered = data
           .filter(coin => coin.price_change_percentage_24h < 0)
           .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
           .slice(0, 3);
-        
+
         setGainers(gainersFiltered.map(coin => ({
           symbol: coin.symbol.toUpperCase(),
           name: coin.name,
@@ -79,7 +78,7 @@ export default function Home() {
           change: coin.price_change_percentage_24h,
           icon: coin.image
         })));
-        
+
         setLosers(losersFiltered.map(coin => ({
           symbol: coin.symbol.toUpperCase(),
           name: coin.name,
@@ -111,7 +110,7 @@ export default function Home() {
         'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6'
       );
       const data = await response.json();
-      
+
       if (data.status === 'ok' && data.items) {
         const articles = data.items.map(item => ({
           title: item.title,
@@ -231,20 +230,25 @@ export default function Home() {
         <div className="card social-section">
           <h2 className="section-title">Follow Chaos Coin</h2>
           <div className="social-links">
-            <a href="https://twitter.com/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>🐦</span> Twitter
+            <a href="https://discord.com/channels/1398769618088231042/1398769618692345918" target="_blank" rel="noopener noreferrer" className="social-link discord">
+              <span className="social-icon">💬</span>
+              <span>Discord</span>
             </a>
-            <a href="https://t.me/chaoscoin" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>📱</span> Telegram
+            <a href="https://twitter.com/ChaosCoin_" target="_blank" rel="noopener noreferrer" className="social-link twitter">
+              <span className="social-icon">🐦</span>
+              <span>Twitter</span>
             </a>
-            <a href="https://discord.com/channels/1398769618088231042/1398769618692345918" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>💬</span> Discord
+            <a href="https://t.me/chaoscoin" target="_blank" rel="noopener noreferrer" className="social-link telegram">
+              <span className="social-icon">✈️</span>
+              <span>Telegram</span>
             </a>
-            <a href="https://www.instagram.com/Chaos_Coin_/" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>📷</span> Instagram
+            <a href="https://www.instagram.com/Chaos_Coin_/" target="_blank" rel="noopener noreferrer" className="social-link instagram">
+              <span className="social-icon">📷</span>
+              <span>Instagram</span>
             </a>
-            <a href="https://www.tiktok.com/@ChaosCoin_" className="social-link" target="_blank" rel="noopener noreferrer">
-              <span>🎵</span> TikTok
+            <a href="https://www.tiktok.com/@ChaosCoin_" target="_blank" rel="noopener noreferrer" className="social-link tiktok">
+              <span className="social-icon">🎵</span>
+              <span>TikTok</span>
             </a>
           </div>
         </div>

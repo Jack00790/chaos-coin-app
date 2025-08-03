@@ -15,6 +15,10 @@ export default function Navbar() {
             src="/chaos-coin-logo.png" 
             alt="Chaos Coin" 
             className="navbar__logo-img"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              console.log('Logo failed to load from:', e.target.src);
+            }}
           />
           <span className="navbar__title">Chaos Coin</span>
         </div>

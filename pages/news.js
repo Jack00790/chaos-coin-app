@@ -6,7 +6,7 @@ import { getAllCryptoNews } from "../lib/newsApi";
 export default function News() {
   const account = useActiveAccount();
   const [posts, setPosts] = useState([]);
-  const [newPost, setNewPost] = useState({ content: "", isPinned: false });
+  const [newPost, setNewPost] = useState({ content: "", isPinned: false, media: null });
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [news, setNews] = useState([]);
@@ -57,21 +57,35 @@ export default function News() {
 
   const handleCreatePost = async () => {
     if (!newPost.content.trim()) return;
+    
+    // Security validation
+    const sanitizedContent = newPost.content.trim().slice(0, 2000); // Limit length
+    
+    if (!isAdmin) {
+      setError("Unauthorized: Admin access required");
+      return;
+    }
 
     const post = {
       id: Date.now(),
-      content: newPost.content,
+      content: sanitizedContent,
       author: "Chaos Team",
       timestamp: new Date().toISOString(),
       isPinned: newPost.isPinned,
       type: "admin",
       likes: 0,
-      shares: 0
+      shares: 0,
+      media: newPost.media || null
     };
 
-    setPosts(prev => [post, ...prev]);
-    setNewPost({ content: "", isPinned: false });
-    setShowAdminPanel(false);
+    try {
+      setPosts(prev => [post, ...prev]);
+      setNewPost({ content: "", isPinned: false, media: null });
+      setShowAdminPanel(false);
+      setError("");
+    } catch (err) {
+      setError("Failed to create post. Please try again.");
+    }
   };
 
   const togglePin = (postId) => {
@@ -125,38 +139,141 @@ export default function News() {
             </div>
 
             {showAdminPanel && (
-              <div className="post-creator">
-                <textarea
-                  className="post-textarea"
-                  placeholder="What's happening with Chaos Coin? Share updates, announcements, or thoughts..."
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                />
-
-                <div className="post-actions">
-                  <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                    <input
-                      type="checkbox"
-                      checked={newPost.isPinned}
-                      onChange={(e) => setNewPost({...newPost, isPinned: e.target.checked})}
+              <div className="post-creator twitter-style">
+                <div style={{display: 'flex', gap: '1rem', marginBottom: '1rem'}}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(45deg, #10b981, #34d399)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem'
+                  }}>
+                    👑
+                  </div>
+                  <div style={{flex: 1}}>
+                    <textarea
+                      className="post-textarea twitter-textarea"
+                      placeholder="What's happening with Chaos Coin?"
+                      value={newPost.content}
+                      onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                      maxLength={2000}
+                      style={{
+                        width: '100%',
+                        minHeight: '120px',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: '#e5e7eb',
+                        fontSize: '1.1rem',
+                        lineHeight: '1.5',
+                        resize: 'none',
+                        fontFamily: 'inherit'
+                      }}
                     />
-                    📌 Pin this post
-                  </label>
+                    
+                    {newPost.media && (
+                      <div style={{marginTop: '1rem', position: 'relative'}}>
+                        <img 
+                          src={newPost.media} 
+                          alt="Post media"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '300px',
+                            borderRadius: '12px',
+                            objectFit: 'cover'
+                          }}
+                        />
+                        <button
+                          onClick={() => setNewPost({...newPost, media: null})}
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            background: 'rgba(0,0,0,0.7)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="post-actions twitter-actions" style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '1rem',
+                      paddingTop: '1rem',
+                      borderTop: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => setNewPost({...newPost, media: e.target.result});
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          style={{display: 'none'}}
+                          id="media-upload"
+                        />
+                        <label htmlFor="media-upload" style={{cursor: 'pointer', color: '#10b981'}}>
+                          📷 Media
+                        </label>
+                        
+                        <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer'}}>
+                          <input
+                            type="checkbox"
+                            checked={newPost.isPinned}
+                            onChange={(e) => setNewPost({...newPost, isPinned: e.target.checked})}
+                          />
+                          📌 Pin
+                        </label>
+                        
+                        <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
+                          {newPost.content.length}/2000
+                        </span>
+                      </div>
 
-                  <div style={{display: 'flex', gap: '1rem'}}>
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => setShowAdminPanel(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      className="btn btn-primary"
-                      onClick={handleCreatePost}
-                      disabled={!newPost.content.trim()}
-                    >
-                      Post Update
-                    </button>
+                      <div style={{display: 'flex', gap: '1rem'}}>
+                        <button 
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            setShowAdminPanel(false);
+                            setNewPost({ content: "", isPinned: false, media: null });
+                          }}
+                          style={{padding: '0.5rem 1rem'}}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          className="btn btn-primary"
+                          onClick={handleCreatePost}
+                          disabled={!newPost.content.trim() || newPost.content.length > 2000}
+                          style={{
+                            padding: '0.5rem 1.5rem',
+                            background: (!newPost.content.trim() || newPost.content.length > 2000) 
+                              ? 'rgba(107, 114, 128, 0.3)' 
+                              : 'linear-gradient(45deg, #10b981, #34d399)',
+                            opacity: (!newPost.content.trim() || newPost.content.length > 2000) ? 0.5 : 1
+                          }}
+                        >
+                          Post
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
