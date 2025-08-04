@@ -32,10 +32,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/buy.js"
     ],
-    "/swap": [
+    "/wallet": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/swap.js"
+      "static/chunks/pages/wallet.js"
     ]
   },
   "ampFirstPages": []

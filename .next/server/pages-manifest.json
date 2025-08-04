@@ -4,5 +4,5 @@
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
   "/buy": "pages/buy.js",
-  "/swap": "pages/swap.js"
+  "/wallet": "pages/wallet.js"
 }
