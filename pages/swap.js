@@ -52,6 +52,16 @@ export default function Swap() {
 
           <div className="swap-info">
             <h3 className="section-title">Swap Details</h3>
+            
+            <div className="swap-requirement">
+              <h4 style={{color: '#10b981', fontWeight: '600', marginBottom: '0.5rem'}}>
+                ⚠️ Must Swap AVAX for CHAOS Coin
+              </h4>
+              <p style={{color: '#9ca3af', fontSize: '0.9rem', marginBottom: '1.5rem'}}>
+                You can only purchase CHAOS tokens by swapping AVAX. Direct purchases with other currencies are not supported.
+              </p>
+            </div>
+
             <div className="info-grid">
               <div className="info-item">
                 <span className="info-label">From:</span>
@@ -64,10 +74,16 @@ export default function Swap() {
               <div className="info-item">
                 <span className="info-label">Network:</span>
                 <span className="info-value">Avalanche C-Chain</span>
+                <div style={{fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem'}}>
+                  Avalanche C-Chain is CHAOS Coin's native blockchain
+                </div>
               </div>
               <div className="info-item">
                 <span className="info-label">DEX:</span>
                 <span className="info-value">Uniswap V3</span>
+                <div style={{fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem'}}>
+                  Decentralized exchange running on Avalanche
+                </div>
               </div>
             </div>
           </div>
