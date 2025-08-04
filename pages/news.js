@@ -852,55 +852,237 @@ export default function News() {
             ))}
           </div>
         </div>
-         {/* Crypto News Feed */}
+         {/* Crypto News Feed - Twitter Style */}
         <div className="card">
           <h2 className="section-title">Latest Crypto News</h2>
           {loading ? (
-            <div className="text-center">
+            <div className="text-center" style={{padding: '2rem'}}>
               <span className="spinner"></span>
               <p className="text-gray">Loading news...</p>
             </div>
           ) : error ? (
-            <div className="text-center">
+            <div className="text-center" style={{padding: '2rem'}}>
               <p className="text-gray">{error}</p>
               <button onClick={fetchNewsData} className="btn btn-primary" style={{marginTop: '1rem'}}>
                 Retry
               </button>
             </div>
           ) : (
-            <div className="news-grid">
+            <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', overflow: 'hidden'}}>
               {news.map((article, index) => (
-                <div key={index} className="news-item">
-                  {article.image && (
-                    <img 
-                      src={article.image} 
-                      alt={article.title}
-                      style={{
-                        width: '100%',
-                        height: '200px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        marginBottom: '1rem'
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <h3 className="news-title">
-                    <a 
-                      href={article.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{color: 'inherit', textDecoration: 'none'}}
-                    >
-                      {article.title}
-                    </a>
-                  </h3>
-                  <p className="news-excerpt">{article.description}</p>
-                  <div className="news-meta">
-                    <span>{article.source}</span>
-                    <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                <div 
+                  key={index} 
+                  className="twitter-post"
+                  style={{
+                    padding: '1.5rem',
+                    borderBottom: index === news.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'transparent',
+                    position: 'relative',
+                    transition: 'background 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'transparent';
+                  }}
+                  onClick={() => article.url !== "#" && window.open(article.url, '_blank')}
+                >
+                  {/* News header */}
+                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(45deg, #1da1f2, #1991da)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      flexShrink: 0,
+                      border: '2px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      📰
+                    </div>
+
+                    <div style={{flex: 1}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                        <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{article.source || "Crypto News"}</span>
+                        <span style={{
+                          content: "✓",
+                          color: '#1da1f2',
+                          fontSize: '12px',
+                          background: '#1da1f2',
+                          borderRadius: '50%',
+                          width: '16px',
+                          height: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white'
+                        }}>✓</span>
+                        <span style={{color: '#6b7280'}}>•</span>
+                        <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
+                          {formatTime(article.publishedAt)}
+                        </span>
+                      </div>
+
+                      {/* News content */}
+                      <div style={{
+                        marginBottom: '1rem', 
+                        lineHeight: '1.6',
+                        fontSize: '1rem',
+                        color: '#e5e7eb'
+                      }}>
+                        <h3 style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '600',
+                          margin: '0 0 0.5rem 0',
+                          color: '#ffffff',
+                          lineHeight: '1.4'
+                        }}>
+                          {article.title}
+                        </h3>
+                        <p style={{
+                          margin: '0',
+                          color: '#8b98a5',
+                          fontSize: '0.95rem',
+                          lineHeight: '1.4'
+                        }}>
+                          {article.description}
+                        </p>
+                      </div>
+
+                      {/* News actions - Twitter style */}
+                      <div style={{
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        paddingTop: '0.75rem',
+                        marginTop: '0.75rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+                      }}>
+                        <div style={{display: 'flex', gap: '4rem', fontSize: '0.9rem'}}>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                            e.target.style.color = '#1da1f2';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            💬 {Math.floor(Math.random() * 20)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                            e.target.style.color = '#10b981';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            🔄 {Math.floor(Math.random() * 50)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.target.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            ❤️ {Math.floor(Math.random() * 100)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(107, 114, 128, 0.1)';
+                            e.target.style.color = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            📤
+                          </button>
+                        </div>
+
+                        {/* Read article link */}
+                        {article.url !== "#" && (
+                          <a 
+                            href={article.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                              color: '#1da1f2',
+                              textDecoration: 'none',
+                              fontSize: '0.85rem',
+                              fontWeight: '400',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              background: 'rgba(29, 161, 242, 0.1)',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = 'rgba(29, 161, 242, 0.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Read article ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
