@@ -41,11 +41,15 @@ export default function News() {
     fetchPosts();
     fetchNewsData();
 
-    // Set up hourly news refresh
+    // Set up hourly news refresh (every hour)
     const newsRefreshInterval = setInterval(() => {
-      console.log('Auto-refreshing crypto news...');
+      console.log('⏰ Hourly auto-refresh triggered at', new Date().toLocaleTimeString());
       fetchNewsData();
     }, 3600000); // 1 hour = 3,600,000 milliseconds
+
+    // Also add a status message for the next refresh
+    console.log('🕐 News will auto-refresh every hour. Next refresh at:', 
+      new Date(Date.now() + 3600000).toLocaleTimeString());
 
     // Cleanup interval on component unmount
     return () => {
@@ -86,13 +90,17 @@ export default function News() {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔄 Fetching crypto news...', new Date().toLocaleTimeString());
       const cryptoNews = await getAllCryptoNews();
+      
       // Ensure we always have exactly 7 articles
       const newsToDisplay = cryptoNews.slice(0, 7);
       setNews(newsToDisplay);
-      console.log(`Loaded ${newsToDisplay.length} crypto news articles`);
+      
+      console.log(`✅ Successfully loaded ${newsToDisplay.length} crypto news articles at ${new Date().toLocaleTimeString()}`);
+      console.log('📰 Latest news titles:', newsToDisplay.map(n => n.title));
     } catch (error) {
-      console.error('Error fetching news:', error);
+      console.error('❌ Error fetching news:', error);
       setError('Failed to load news. Please try again later.');
     } finally {
       setLoading(false);
