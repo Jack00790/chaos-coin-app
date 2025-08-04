@@ -1683,8 +1683,11 @@ html, body {
 .twitter-feed {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
   overflow: hidden;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .twitter-post {
@@ -1692,7 +1695,31 @@ html, body {
 }
 
 .twitter-post:hover {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  cursor: pointer;
+}
+
+/* Smooth scrolling for Twitter feed */
+.twitter-feed {
+  scroll-behavior: smooth;
+}
+
+.twitter-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.twitter-feed::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.twitter-feed::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.4);
+  border-radius: 3px;
+}
+
+.twitter-feed::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
 }
 
 .twitter-post:last-child {

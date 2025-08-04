@@ -23,18 +23,24 @@ export default function News() {
   const ADMIN_WALLET = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
 
   useEffect(() => {
-    if (account && ADMIN_WALLET) {
-      const isAdminUser = account.address.toLowerCase() === ADMIN_WALLET.toLowerCase();
+    // Enhanced admin check with better validation
+    if (account?.address && ADMIN_WALLET) {
+      const userAddress = account.address.toLowerCase().trim();
+      const adminAddress = ADMIN_WALLET.toLowerCase().trim();
+      const isAdminUser = userAddress === adminAddress;
       setIsAdmin(isAdminUser);
-      console.log('Admin check:', {
-        userAddress: account.address,
-        adminAddress: ADMIN_WALLET,
-        isAdmin: isAdminUser
+      console.log('Enhanced Admin check:', {
+        userAddress,
+        adminAddress, 
+        isAdmin: isAdminUser,
+        accountConnected: !!account
       });
+    } else {
+      setIsAdmin(false);
     }
     fetchPosts();
     fetchNewsData();
-  }, [account]);
+  }, [account, ADMIN_WALLET]);
 
   const fetchPosts = () => {
     try {
@@ -80,46 +86,68 @@ export default function News() {
   };
 
   const handleCreatePost = async () => {
+    // Clear any previous errors
+    setError("");
+
+    // Validation checks
+    if (!account?.address) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
     if (!newPost.content.trim() && !newPost.media && !newPost.poll) {
       setError("Please add some content, media, or create a poll");
       return;
     }
 
-    console.log('Creating post as admin:', {
-      isAdmin,
-      userAddress: account?.address,
-      adminWallet: ADMIN_WALLET,
-      content: newPost.content
+    // Enhanced admin check
+    const userAddress = account.address.toLowerCase().trim();
+    const adminAddress = ADMIN_WALLET?.toLowerCase().trim();
+    const isCurrentlyAdmin = userAddress === adminAddress;
+
+    console.log('Creating post - Admin verification:', {
+      isCurrentlyAdmin,
+      userAddress,
+      adminAddress,
+      hasContent: !!newPost.content.trim()
     });
 
-    if (!isAdmin) {
-      setError(`Unauthorized: Admin access required. Connected: ${account?.address}, Admin: ${ADMIN_WALLET}`);
+    if (!isCurrentlyAdmin) {
+      setError(`Admin access required. Please connect with admin wallet.`);
       return;
     }
 
-    // Security validation
-    const sanitizedContent = newPost.content.trim().slice(0, 2000); // Limit length
-
-    const post = {
-      id: Date.now(),
-      content: sanitizedContent,
-      author: "Chaos Team",
-      timestamp: new Date().toISOString(),
-      isPinned: newPost.isPinned,
-      type: "admin",
-      likes: 0,
-      shares: 0,
-      retweets: 0,
-      media: newPost.media || null,
-      mediaType: newPost.mediaType || null,
-      poll: newPost.poll || null
-    };
-
     try {
+      // Security validation
+      const sanitizedContent = newPost.content.trim().slice(0, 2000);
+
+      const post = {
+        id: Date.now() + Math.random(), // More unique ID
+        content: sanitizedContent,
+        author: "Chaos Team",
+        timestamp: new Date().toISOString(),
+        isPinned: newPost.isPinned,
+        type: "admin",
+        likes: Math.floor(Math.random() * 20), // Random likes for demo
+        replies: Math.floor(Math.random() * 5),
+        retweets: Math.floor(Math.random() * 10),
+        shares: Math.floor(Math.random() * 8),
+        media: newPost.media || null,
+        mediaType: newPost.mediaType || null,
+        poll: newPost.poll || null
+      };
+
       const updatedPosts = [post, ...posts];
       setPosts(updatedPosts);
-      localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+      
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+      } catch (storageError) {
+        console.warn('localStorage save failed:', storageError);
+      }
 
+      // Reset form
       setNewPost({ 
         content: "", 
         isPinned: false, 
@@ -127,8 +155,10 @@ export default function News() {
         mediaType: null,
         poll: null 
       });
-      setError("");
+
+      console.log('Post created successfully!');
     } catch (err) {
+      console.error('Post creation error:', err);
       setError("Failed to create post. Please try again.");
     }
   };
@@ -229,12 +259,26 @@ export default function News() {
         <h1 className="page-title">News & Updates</h1>
 
         {/* Twitter-Style Admin Posting */}
-        {account && account.address && process.env.NEXT_PUBLIC_TREASURY_ADDRESS && 
-         account.address.toLowerCase() === process.env.NEXT_PUBLIC_TREASURY_ADDRESS.toLowerCase() && (
+        {account?.address && ADMIN_WALLET && isAdmin && (
           <div className="card twitter-compose">
             <div className="admin-badge">
               👑 Admin Posting
             </div>
+            
+            {/* Error Display */}
+            {error && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                color: '#fca5a5',
+                fontSize: '0.9rem'
+              }}>
+                {error}
+              </div>
+            )}
             <div style={{display: 'flex', gap: '1rem'}}>
               <div style={{
                 width: '48px',
@@ -660,14 +704,16 @@ export default function News() {
                       </div>
                     )}
 
-                    {/* Post actions */}
+                    {/* Post actions - Twitter style */}
                     <div style={{
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center',
-                      paddingTop: '0.5rem'
+                      paddingTop: '0.75rem',
+                      marginTop: '0.75rem',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      <div style={{display: 'flex', gap: '3rem', fontSize: '0.9rem', color: '#6b7280'}}>
+                      <div style={{display: 'flex', gap: '4rem', fontSize: '0.9rem'}}>
                         <button style={{
                           background: 'transparent',
                           border: 'none',
@@ -675,7 +721,18 @@ export default function News() {
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem'
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                          e.target.style.color = '#1da1f2';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
                         }}>
                           💬 {post.replies || 0}
                         </button>
@@ -686,7 +743,18 @@ export default function News() {
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem'
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                          e.target.style.color = '#10b981';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
                         }}>
                           🔄 {post.retweets || 0}
                         </button>
@@ -697,7 +765,18 @@ export default function News() {
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem'
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+                          e.target.style.color = '#ef4444';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
                         }}>
                           ❤️ {post.likes || 0}
                         </button>
@@ -705,7 +784,18 @@ export default function News() {
                           background: 'transparent',
                           border: 'none',
                           color: '#6b7280',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(107, 114, 128, 0.1)';
+                          e.target.style.color = '#9ca3af';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
                         }}>
                           📤
                         </button>
