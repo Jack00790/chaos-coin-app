@@ -92,54 +92,34 @@ html, body {
 .info-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-top: 1rem;
+  gap: 2rem;
+  margin-top: 1.5rem;
 }
 
 .info-item {
-  padding: 1rem;
+  padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .info-label {
   font-weight: 600;
   color: #10b981;
-  display: block;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
 }
 
 .info-value {
   color: #ffffff;
   font-weight: 500;
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-}
-
-.info-label {
-  font-weight: 600;
-  color: #10b981;
-}
-
-.info-value {
-  color: #e5e7eb;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
 }
 
 @media (max-width: 768px) {
