@@ -874,7 +874,8 @@ html, body {
 
 .price-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+```text
+grid-template-columns: 1fr 1fr;
   gap: 1rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
