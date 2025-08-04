@@ -35,7 +35,7 @@ export default function Swap() {
           {/* Uniswap Widget iframe */}
           <div className="uniswap-container">
             <iframe
-              src={`https://app.uniswap.org/#/swap?exactField=input&exactAmount=1&inputCurrency=0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7&outputCurrency=${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}&chain=avalanche`}
+              src={`https://app.uniswap.org/#/swap?exactField=input&exactAmount=1&inputCurrency=ETH&outputCurrency=${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}&chain=avalanche`}
               height="660px"
               width="100%"
               style={{
