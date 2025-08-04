@@ -43,17 +43,35 @@ export default async function handler(req, res) {
       buyerAddress,
       amount, // USD amount paid
       transactionHash,
-      paymentStatus
+      paymentStatus,
+      metadata
     } = paymentData;
+
+    // Get token amount from metadata if available
+    const tokenAmount = metadata?.tokenAmount || (parseFloat(amount) / (metadata?.tokenPrice || 0.000001)).toString();
 
     // Only process successful payments
     if (paymentStatus !== 'completed') {
       return res.status(200).json({ message: 'Payment not completed yet' });
     }
 
-    // Calculate token amount based on current price
-    const tokenPrice = await getCurrentTokenPrice();
-    const tokenAmount = (parseFloat(amount) / tokenPrice).toString();
+    // Use token amount from metadata or calculate if not available
+    let calculatedTokenAmount;
+    if (metadata?.tokenAmount) {
+      // Extract numeric value if it has K/M suffix
+      const tokenStr = metadata.tokenAmount.toString();
+      if (tokenStr.includes('M')) {
+        calculatedTokenAmount = (parseFloat(tokenStr.replace('M', '')) * 1000000).toString();
+      } else if (tokenStr.includes('K')) {
+        calculatedTokenAmount = (parseFloat(tokenStr.replace('K', '')) * 1000).toString();
+      } else {
+        calculatedTokenAmount = parseFloat(tokenStr.replace(/,/g, '')).toString();
+      }
+    } else {
+      // Fallback calculation
+      const currentTokenPrice = await getCurrentTokenPrice();
+      calculatedTokenAmount = (parseFloat(amount) / currentTokenPrice).toString();
+    }
 
     // Get treasury account from private key
     const treasuryAccount = privateKeyToAccount({
@@ -72,7 +90,7 @@ export default async function handler(req, res) {
     const transaction = transfer({
       contract,
       to: buyerAddress,
-      amount: ethers.parseEther(tokenAmount),
+      amount: ethers.parseEther(calculatedTokenAmount),
     });
 
     // Execute transaction from treasury wallet

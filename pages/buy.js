@@ -278,16 +278,19 @@ export default function Buy() {
                     mode: "direct_payment",
                     paymentInfo: {
                       amount: amount,
+                      currency: "USD",
                       chain: avalanche,
-                      token: process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS,
                       sellerAddress: process.env.NEXT_PUBLIC_TREASURY_ADDRESS,
                     },
                     metadata: {
                       name: "CHAOS Token Purchase",
-                      description: `Purchase ${estimatedTokens} CHAOS tokens`,
+                      description: `Purchase ${estimatedTokens} CHAOS tokens for $${amount} USD`,
                       image: "/chaos-coin-logo.png",
                       buyerAddress: account.address,
                       tokenAmount: estimatedTokens,
+                      destinationToken: process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS,
+                      usdAmount: amount,
+                      tokenPrice: tokenPrice,
                     },
                     webhookUrl: `${window.location.origin}/api/webhook/payment-success`,
                   }}
