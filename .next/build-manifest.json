@@ -31,16 +31,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/buy.js"
-    ],
-    "/swap": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/swap.js"
-    ],
-    "/wallet": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/wallet.js"
     ]
   },
   "ampFirstPages": []

@@ -2,8 +2,6 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/buy": "pages/buy.js",
   "/": "pages/index.js",
-  "/wallet": "pages/wallet.js",
-  "/swap": "pages/swap.js"
+  "/buy": "pages/buy.js"
 }
