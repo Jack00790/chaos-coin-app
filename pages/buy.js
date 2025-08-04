@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { PayEmbed } from "thirdweb/react";
@@ -45,7 +44,7 @@ export default function Buy() {
       );
 
       clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.pairs && data.pairs.length > 0) {
@@ -53,7 +52,7 @@ export default function Buy() {
             pair.chainId === 'avalanche' || 
             pair.baseToken?.address?.toLowerCase() === process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS?.toLowerCase()
           );
-          
+
           const pair = avalanchePair || data.pairs[0];
           const price = parseFloat(pair.priceUsd || "0.000001");
           setTokenPrice(price > 0 ? price : 0.000001);
@@ -78,15 +77,15 @@ export default function Buy() {
       setEstimatedTokens('0');
       return;
     }
-    
+
     const usdAmount = parseFloat(amount);
     if (isNaN(usdAmount) || usdAmount <= 0) {
       setEstimatedTokens('0');
       return;
     }
-    
+
     const tokens = usdAmount / tokenPrice;
-    
+
     let formattedTokens;
     if (tokens >= 1000000) {
       formattedTokens = (tokens / 1000000).toFixed(2) + 'M';
@@ -100,7 +99,7 @@ export default function Buy() {
     } else {
       formattedTokens = tokens.toFixed(8);
     }
-    
+
     setEstimatedTokens(formattedTokens);
   };
 
@@ -143,7 +142,7 @@ export default function Buy() {
     <div className="app-container">
       <Navbar />
       <main className="main-content">
-        
+
         {/* Page Header */}
         <div className="card page-header">
           <div className="page-header-content">
@@ -176,7 +175,7 @@ export default function Buy() {
               </button>
             </div>
           </div>
-          
+
           <div className="price-display">
             <div className="current-price">
               <span className="price-label">CHAOS/USD</span>
@@ -206,11 +205,11 @@ export default function Buy() {
 
         {/* Purchase Interface */}
         <div className="purchase-section">
-          
+
           {/* Amount Input */}
           <div className="card amount-input-card">
             <h3 className="section-title">💵 Purchase Amount</h3>
-            
+
             <div className="amount-input-section">
               <div className="input-group">
                 <label htmlFor="amount" className="input-label">Amount (USD)</label>
@@ -226,7 +225,7 @@ export default function Buy() {
                 />
                 <span className="input-suffix">USD</span>
               </div>
-              
+
               <div className="estimated-tokens">
                 <span className="estimation-label">You will receive approximately:</span>
                 <span className="estimation-value">{estimatedTokens} CHAOS</span>
@@ -270,26 +269,25 @@ export default function Buy() {
           {showPayment && account && amount && parseFloat(amount) >= 1 && (
             <div className="card payment-widget-card">
               <h3 className="section-title">🔐 Secure Payment</h3>
-              
+
               <div className="payment-widget-container">
                 <PayEmbed
                   client={client}
                   payOptions={{
-                    mode: "direct_payment",
-                    paymentInfo: {
-                      amount: amount,
-                      currency: "USD",
+                    mode: "fund_wallet",
+                    prefillBuy: {
                       chain: avalanche,
-                      sellerAddress: process.env.NEXT_PUBLIC_TREASURY_ADDRESS,
+                      amount: amount,
+                      currency: "USD"
                     },
                     metadata: {
                       name: "CHAOS Token Purchase",
-                      description: `Purchase ${estimatedTokens} CHAOS tokens for $${amount} USD`,
+                      description: `Add $${amount} USD to wallet for CHAOS token purchase`,
                       image: "/chaos-coin-logo.png",
                       buyerAddress: account.address,
                       tokenAmount: estimatedTokens,
                       destinationToken: process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS,
-                      usdAmount: amount,
+                      usdAmount: parseFloat(amount),
                       tokenPrice: tokenPrice,
                     },
                     webhookUrl: `${window.location.origin}/api/webhook/payment-success`,
@@ -355,7 +353,7 @@ export default function Buy() {
         </div>
 
         {/* Purchase Disclaimer */}
-        <div className="card disclaimer-card">
+        <div className="card disclaimer-card" style={{ backgroundColor: '#d4edda', borderColor: '#c3e6cb', color: '#155724' }}>
           <h3 className="section-title">⚠️ Important Information</h3>
           <div className="disclaimer-content">
             <ul className="disclaimer-list">
