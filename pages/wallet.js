@@ -113,7 +113,7 @@ export default function Wallet() {
         <div className="card">
           <h2 className="section-title">Account Summary</h2>
           <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-            <div style={{fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.5rem'}}>
+            <div style={{fontSize: '0.9rem', color: '#10b981', marginBottom: '0.5rem', fontWeight: '600'}}>
               Connected Wallet
             </div>
             <div style={{fontFamily: 'monospace', fontSize: '0.9rem', wordBreak: 'break-all'}}>
