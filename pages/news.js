@@ -1,544 +1,1128 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import Navbar from "../components/Navbar";
+import { getAllCryptoNews } from "../lib/newsApi";
 
 export default function News() {
+  const account = useActiveAccount();
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState({ 
+    content: "", 
+    isPinned: false, 
+    media: null, 
+    mediaType: null,
+    poll: null 
+  });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
 
-  // Enhanced news fetching with multiple sources and better error handling
-  const fetchEnhancedNews = useCallback(async () => {
+  // Admin wallet address - replace with your actual admin wallet
+  const ADMIN_WALLET = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
+
+  useEffect(() => {
+    // Enhanced admin check with better validation
+    if (account?.address && ADMIN_WALLET) {
+      const userAddress = account.address.toLowerCase().trim();
+      const adminAddress = ADMIN_WALLET.toLowerCase().trim();
+      const isAdminUser = userAddress === adminAddress;
+      setIsAdmin(isAdminUser);
+      console.log('Enhanced Admin check:', {
+        userAddress,
+        adminAddress, 
+        isAdmin: isAdminUser,
+        accountConnected: !!account
+      });
+    } else {
+      setIsAdmin(false);
+    }
+    fetchPosts();
+    fetchNewsData();
+
+    // Set up hourly news refresh (every hour)
+    const newsRefreshInterval = setInterval(() => {
+      console.log('⏰ Hourly auto-refresh triggered at', new Date().toLocaleTimeString());
+      fetchNewsData();
+    }, 3600000); // 1 hour = 3,600,000 milliseconds
+
+    // Also add a status message for the next refresh
+    console.log('🕐 News will auto-refresh every hour. Next refresh at:', 
+      new Date(Date.now() + 3600000).toLocaleTimeString());
+
+    // Cleanup interval on component unmount
+    return () => {
+      clearInterval(newsRefreshInterval);
+    };
+  }, [account, ADMIN_WALLET]);
+
+  const fetchPosts = () => {
     try {
-      setRefreshing(true);
-      setError(null);
-
-      console.log("🔄 Fetching crypto news...", new Date().toLocaleTimeString());
-
-      // Multiple RSS sources for comprehensive coverage
-      const newsSources = [
-        { 
-          url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=5',
-          name: 'CoinTelegraph',
-          icon: 'https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png'
-        },
-        { 
-          url: 'https://api.rss2json.com/v1/api.json?rss_url=https://decrypt.co/feed&count=4',
-          name: 'Decrypt',
-          icon: 'https://cdn.decrypt.co/wp-content/themes/decrypt/build/images/favicon/favicon-32x32.png'
-        },
-        { 
-          url: 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/arc/outboundfeeds/rss/&count=4',
-          name: 'CoinDesk',
-          icon: 'https://www.coindesk.com/pf/resources/images/favicons/favicon-32x32.png'
-        }
-      ];
-
-      const newsPromises = newsSources.map(async (source, index) => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-          const response = await fetch(source.url, {
-            signal: controller.signal,
-            headers: { 'Accept': 'application/json' }
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            throw new Error(`${source.name} API returned ${response.status}`);
-          }
-
-          const data = await response.json();
-
-          if (data.status === 'ok' && Array.isArray(data.items)) {
-            return data.items.map(item => ({
-              id: item.guid || `${source.name}-${Date.now()}-${Math.random()}`,
-              title: item.title || "Crypto Market Update",
-              excerpt: (item.description || item.content || "Latest cryptocurrency news and analysis...")
-                .replace(/<[^>]*>/g, '')
-                .replace(/&[^;]+;/g, '')
-                .substring(0, 180) + '...',
-              timestamp: item.pubDate ? new Date(item.pubDate) : new Date(),
-              image: item.thumbnail || item.enclosure?.link || source.icon,
-              url: item.link || "#",
-              source: source.name,
-              sourceImage: source.icon,
-              category: categorizeNews(item.title + ' ' + (item.description || '')),
-              publishedTime: item.pubDate ? new Date(item.pubDate).toLocaleString() : "Recent"
-            }));
-          }
-          return [];
-        } catch (error) {
-          console.warn(`Failed to fetch from ${source.name}:`, error.message);
-          return [];
-        }
-      });
-
-      const results = await Promise.allSettled(newsPromises);
-      let allArticles = [];
-
-      results.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          allArticles = [...allArticles, ...result.value];
-        }
-      });
-
-      if (allArticles.length > 0) {
-        // Remove duplicates based on title similarity
-        const uniqueArticles = allArticles.filter((article, index, self) => 
-          index === self.findIndex(a => 
-            similarity(a.title.toLowerCase(), article.title.toLowerCase()) < 0.8
-          )
-        );
-
-        // Sort by date (newest first) and limit to 15 articles
-        const sortedArticles = uniqueArticles
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          .slice(0, 15);
-
-        setNews(sortedArticles);
-        console.log("✅ Successfully loaded", sortedArticles.length, "crypto news articles at", new Date().toLocaleTimeString());
-        console.log("📰 Latest news titles:", sortedArticles.map(a => a.title));
+      // Load posts from localStorage
+      const savedPosts = localStorage.getItem('chaoscoin_posts');
+      if (savedPosts) {
+        setPosts(JSON.parse(savedPosts));
       } else {
-        throw new Error("No articles fetched from any source");
+        // Default posts if none saved
+        const defaultPosts = [
+          {
+            id: 1,
+            content: "🚀 Chaos Coin launch is live! Welcome to the future of DeFi!",
+            author: "Chaos Team",
+            timestamp: new Date().toISOString(),
+            isPinned: true,
+            type: "admin",
+            likes: 42,
+            shares: 15
+          }
+        ];
+        setPosts(defaultPosts);
+        localStorage.setItem('chaoscoin_posts', JSON.stringify(defaultPosts));
       }
-
     } catch (error) {
-      console.warn("Using fallback crypto news:", error.message);
-      setError(error.message);
+      console.error('Error loading posts:', error);
+      setPosts([]);
+    }
+  };
 
-      // Enhanced fallback news with more variety and better categorization
-      const fallbackNews = [
-        {
-          id: "chaos1",
-          title: "CHAOS Token Achieves New Milestone",
-          excerpt: "The CHAOS token ecosystem continues to expand with new partnerships and integrations across major DeFi platforms. Recent developments include enhanced liquidity pools and governance features...",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          image: "https://cryptonews.com/favicon.ico",
-          url: "#",
-          source: "CHAOS News",
-          sourceImage: "https://cryptonews.com/favicon.ico",
-          category: "defi",
-          publishedTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "avax1",
-          title: "Avalanche Network Performance Surge",
-          excerpt: "Avalanche blockchain demonstrates exceptional performance metrics with record-low transaction fees and sub-second finality. Developer adoption continues to accelerate with new dApp launches...",
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-          image: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
-          url: "#",
-          source: "Avalanche Today",
-          sourceImage: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
-          category: "blockchain",
-          publishedTime: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "defi1",
-          title: "DeFi Market Shows Bullish Momentum",
-          excerpt: "Decentralized finance protocols experience significant growth in total value locked (TVL). New yield farming opportunities and innovative AMM designs attract institutional interest...",
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-          image: "https://cryptonews.com/favicon.ico",
-          url: "#",
-          source: "DeFi Pulse",
-          sourceImage: "https://cryptonews.com/favicon.ico",
-          category: "defi",
-          publishedTime: new Date(Date.now() - 6 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "inst1",
-          title: "Institutional Crypto Investment Boom",
-          excerpt: "Major financial institutions increase cryptocurrency allocations amid favorable regulatory developments. Bitcoin and Ethereum ETFs see unprecedented inflows from pension funds...",
-          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-          image: "https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png",
-          url: "#",
-          source: "CoinTelegraph",
-          sourceImage: "https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png",
-          category: "bitcoin",
-          publishedTime: new Date(Date.now() - 8 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "gaming1",
-          title: "Web3 Gaming Revolution Continues",
-          excerpt: "Blockchain gaming platforms introduce revolutionary play-to-earn mechanics with sustainable tokenomics. NFT integration creates new economic models for digital asset ownership...",
-          timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000),
-          image: "https://cryptonews.com/favicon.ico",
-          url: "#",
-          source: "GameFi News",
-          sourceImage: "https://cryptonews.com/favicon.ico",
-          category: "gaming",
-          publishedTime: new Date(Date.now() - 10 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "security1",
-          title: "Smart Contract Security Enhancement",
-          excerpt: "Advanced audit protocols and formal verification methods strengthen DeFi security infrastructure. New bug bounty programs incentivize responsible disclosure of vulnerabilities...",
-          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
-          image: "https://cryptonews.com/favicon.ico",
-          url: "#",
-          source: "Security Weekly",
-          sourceImage: "https://cryptonews.com/favicon.ico",
-          category: "security",
-          publishedTime: new Date(Date.now() - 12 * 60 * 60 * 1000).toLocaleString()
-        },
-        {
-          id: "tech1",
-          title: "Cross-Chain Interoperability Breakthrough",
-          excerpt: "Revolutionary bridge protocols enable seamless asset transfers between different blockchain networks. Zero-knowledge proofs enhance security while maintaining transaction privacy...",
-          timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000),
-          image: "https://cryptonews.com/favicon.ico",
-          url: "#",
-          source: "Blockchain Tech",
-          sourceImage: "https://cryptonews.com/favicon.ico",
-          category: "blockchain",
-          publishedTime: new Date(Date.now() - 14 * 60 * 60 * 1000).toLocaleString()
-        }
-      ];
-
-      setNews(fallbackNews);
-      console.log("📊 Generated", fallbackNews.length, "fallback news articles for display");
+  const fetchNewsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('🔄 Fetching crypto news...', new Date().toLocaleTimeString());
+      const cryptoNews = await getAllCryptoNews();
+      
+      // Ensure we always have exactly 7 articles
+      const newsToDisplay = cryptoNews.slice(0, 7);
+      setNews(newsToDisplay);
+      
+      console.log(`✅ Successfully loaded ${newsToDisplay.length} crypto news articles at ${new Date().toLocaleTimeString()}`);
+      console.log('📰 Latest news titles:', newsToDisplay.map(n => n.title));
+    } catch (error) {
+      console.error('❌ Error fetching news:', error);
+      setError('Failed to load news. Please try again later.');
     } finally {
       setLoading(false);
-      setRefreshing(false);
-
-      // Set up next refresh
-      const nextRefresh = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      console.log("🕐 News will auto-refresh every hour. Next refresh at:", nextRefresh.toLocaleTimeString());
     }
-  }, []);
+  };
 
-  // Utility functions
-  const categorizeNews = useCallback((text) => {
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('bitcoin') || lowerText.includes('btc')) return 'bitcoin';
-    if (lowerText.includes('ethereum') || lowerText.includes('eth')) return 'ethereum';
-    if (lowerText.includes('defi') || lowerText.includes('yield') || lowerText.includes('liquidity')) return 'defi';
-    if (lowerText.includes('nft') || lowerText.includes('gaming') || lowerText.includes('metaverse')) return 'gaming';
-    if (lowerText.includes('regulation') || lowerText.includes('government') || lowerText.includes('legal')) return 'regulation';
-    if (lowerText.includes('security') || lowerText.includes('hack') || lowerText.includes('audit')) return 'security';
-    if (lowerText.includes('avalanche') || lowerText.includes('avax') || lowerText.includes('blockchain')) return 'blockchain';
-    return 'general';
-  }, []);
+  const handleCreatePost = async () => {
+    // Clear any previous errors
+    setError("");
 
-  const similarity = useCallback((a, b) => {
-    const longer = a.length > b.length ? a : b;
-    const shorter = a.length > b.length ? b : a;
-    if (longer.length === 0) return 1.0;
-    return (longer.length - editDistance(longer, shorter)) / longer.length;
-  }, []);
-
-  const editDistance = useCallback((a, b) => {
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) {
-      matrix[i] = [i];
+    // Validation checks
+    if (!account?.address) {
+      setError("Please connect your wallet first");
+      return;
     }
-    for (let j = 0; j <= a.length; j++) {
-      matrix[0][j] = j;
+
+    if (!newPost.content.trim() && !newPost.media && !newPost.poll) {
+      setError("Please add some content, media, or create a poll");
+      return;
     }
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
+
+    // Enhanced admin check
+    const userAddress = account.address.toLowerCase().trim();
+    const adminAddress = ADMIN_WALLET?.toLowerCase().trim();
+    const isCurrentlyAdmin = userAddress === adminAddress;
+
+    console.log('Creating post - Admin verification:', {
+      isCurrentlyAdmin,
+      userAddress,
+      adminAddress,
+      hasContent: !!newPost.content.trim()
+    });
+
+    if (!isCurrentlyAdmin) {
+      setError(`Admin access required. Please connect with admin wallet.`);
+      return;
+    }
+
+    try {
+      // Security validation
+      const sanitizedContent = newPost.content.trim().slice(0, 2000);
+
+      const post = {
+        id: Date.now() + Math.random(), // More unique ID
+        content: sanitizedContent,
+        author: "Chaos Team",
+        timestamp: new Date().toISOString(),
+        isPinned: newPost.isPinned,
+        type: "admin",
+        likes: Math.floor(Math.random() * 20), // Random likes for demo
+        replies: Math.floor(Math.random() * 5),
+        retweets: Math.floor(Math.random() * 10),
+        shares: Math.floor(Math.random() * 8),
+        media: newPost.media || null,
+        mediaType: newPost.mediaType || null,
+        poll: newPost.poll || null
+      };
+
+      const updatedPosts = [post, ...posts];
+      setPosts(updatedPosts);
+      
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+      } catch (storageError) {
+        console.warn('localStorage save failed:', storageError);
       }
+
+      // Reset form
+      setNewPost({ 
+        content: "", 
+        isPinned: false, 
+        media: null, 
+        mediaType: null,
+        poll: null 
+      });
+
+      console.log('Post created successfully!');
+    } catch (err) {
+      console.error('Post creation error:', err);
+      setError("Failed to create post. Please try again.");
     }
-    return matrix[b.length][a.length];
-  }, []);
+  };
 
-  const getRelativeTime = useCallback((timestamp) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - time) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return time.toLocaleDateString();
-  }, []);
-
-  // Filtered and sorted news
-  const filteredNews = useMemo(() => {
-    let filtered = news;
-
-    // Apply category filter
-    if (filter !== 'all') {
-      filtered = filtered.filter(article => article.category === filter);
-    }
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(article =>
-        article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        article.excerpt.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply sorting
-    if (sortBy === 'newest') {
-      filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    } else if (sortBy === 'oldest') {
-      filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    } else if (sortBy === 'source') {
-      filtered.sort((a, b) => a.source.localeCompare(b.source));
-    }
-
-    return filtered;
-  }, [news, filter, searchTerm, sortBy]);
-
-  // Get unique categories
-  const categories = useMemo(() => {
-    const cats = ['all', ...new Set(news.map(article => article.category))];
-    return cats;
-  }, [news]);
-
-  // Auto-refresh functionality
-  useEffect(() => {
-    fetchEnhancedNews();
-
-    // Set up auto-refresh every hour
-    const interval = setInterval(fetchEnhancedNews, 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [fetchEnhancedNews]);
-
-  const handleRefresh = useCallback(() => {
-    fetchEnhancedNews();
-  }, [fetchEnhancedNews]);
-
-  if (loading) {
-    return (
-      <div className="app-container">
-        <Navbar />
-        <main className="main-content">
-          <div className="card loading-card">
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div className="loading-spinner"></div>
-              <h2 style={{ margin: '1rem 0', color: '#10b981' }}>Loading Latest News</h2>
-              <p className="text-gray">Fetching the latest cryptocurrency news from multiple sources...</p>
-            </div>
-          </div>
-        </main>
-      </div>
+  const togglePin = (postId) => {
+    const updatedPosts = posts.map(post => 
+      post.id === postId 
+        ? { ...post, isPinned: !post.isPinned }
+        : post
     );
-  }
+    setPosts(updatedPosts);
+    localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+  };
+
+  const deletePost = (postId) => {
+    const updatedPosts = posts.filter(post => post.id !== postId);
+    setPosts(updatedPosts);
+    localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
+  };
+
+  const addPollOption = () => {
+    if (!newPost.poll) {
+      setNewPost({
+        ...newPost,
+        poll: {
+          question: "",
+          options: ["", ""],
+          duration: 24, // hours
+          votes: {}
+        }
+      });
+    } else if (newPost.poll.options.length < 4) {
+      setNewPost({
+        ...newPost,
+        poll: {
+          ...newPost.poll,
+          options: [...newPost.poll.options, ""]
+        }
+      });
+    }
+  };
+
+  const updatePollOption = (index, value) => {
+    const newOptions = [...newPost.poll.options];
+    newOptions[index] = value;
+    setNewPost({
+      ...newPost,
+      poll: {
+        ...newPost.poll,
+        options: newOptions
+      }
+    });
+  };
+
+  const removePollOption = (index) => {
+    if (newPost.poll.options.length > 2) {
+      const newOptions = newPost.poll.options.filter((_, i) => i !== index);
+      setNewPost({
+        ...newPost,
+        poll: {
+          ...newPost.poll,
+          options: newOptions
+        }
+      });
+    }
+  };
+
+  const removePoll = () => {
+    setNewPost({
+      ...newPost,
+      poll: null
+    });
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    return "Now";
+  };
+
+  // Sort posts: pinned first, then by timestamp
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
 
   return (
     <div className="app-container">
       <Navbar />
       <main className="main-content">
+        <h1 className="page-title">News & Updates</h1>
 
-        {/* Enhanced Header */}
-        <div className="card page-header">
-          <div style={{ textAlign: 'center' }}>
-            <h1 className="page-title">📰 Cryptocurrency News</h1>
-            <p className="page-description">
-              Stay updated with the latest developments in blockchain technology, DeFi protocols, 
-              and cryptocurrency markets from trusted sources worldwide.
-            </p>
-          </div>
-        </div>
+        {/* Twitter-Style Admin Posting */}
+        {account?.address && ADMIN_WALLET && isAdmin && (
+          <div className="card twitter-compose">
+            <div className="admin-badge">
+              👑 Admin Posting
+            </div>
+            
+            {/* Error Display */}
+            {error && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                color: '#fca5a5',
+                fontSize: '0.9rem'
+              }}>
+                {error}
+              </div>
+            )}
+            <div style={{display: 'flex', gap: '1rem'}}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: 'linear-gradient(45deg, #10b981, #34d399)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem',
+                flexShrink: 0
+              }}>
+                👑
+              </div>
 
-        {/* Enhanced Controls */}
-        <div className="card">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Top row: Search and Refresh */}
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <input
-                  type="text"
-                  placeholder="Search news articles..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="form-input"
-                  style={{ margin: 0, padding: '0.75rem' }}
+              <div style={{flex: 1}}>
+                <textarea
+                  className="twitter-compose-textarea"
+                  placeholder="What's happening with Chaos Coin?"
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                  maxLength={2000}
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#e5e7eb',
+                    fontSize: '1.2rem',
+                    lineHeight: '1.5',
+                    resize: 'none',
+                    fontFamily: 'inherit'
+                  }}
                 />
-              </div>
-              <button 
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="btn btn-primary"
-                style={{ minWidth: '120px' }}
-              >
-                {refreshing ? (
-                  <>
-                    <span className="loading-spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></span>
-                    Refreshing...
-                  </>
-                ) : (
-                  <>🔄 Refresh</>
+
+                {/* Media Preview */}
+                {newPost.media && (
+                  <div style={{marginTop: '1rem', position: 'relative', borderRadius: '16px', overflow: 'hidden'}}>
+                    {newPost.mediaType === 'video' ? (
+                      <video 
+                        src={newPost.media} 
+                        controls
+                        style={{
+                          width: '100%',
+                          maxHeight: '400px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <img 
+                        src={newPost.media} 
+                        alt="Post media"
+                        style={{
+                          width: '100%',
+                          maxHeight: '400px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    )}
+                    <button
+                      onClick={() => setNewPost({...newPost, media: null, mediaType: null})}
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: 'rgba(0,0,0,0.8)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
-              </button>
+
+                {/* Poll Preview */}
+                {newPost.poll && (
+                  <div style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    <input
+                      type="text"
+                      placeholder="Ask a question..."
+                      value={newPost.poll.question}
+                      onChange={(e) => setNewPost({
+                        ...newPost,
+                        poll: {...newPost.poll, question: e.target.value}
+                      })}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: '#e5e7eb',
+                        fontSize: '1rem',
+                        marginBottom: '1rem',
+                        fontWeight: '600'
+                      }}
+                    />
+                    {newPost.poll.options.map((option, index) => (
+                      <div key={index} style={{display: 'flex', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                        <input
+                          type="text"
+                          placeholder={`Option ${index + 1}`}
+                          value={option}
+                          onChange={(e) => updatePollOption(index, e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '8px',
+                            color: '#e5e7eb',
+                            outline: 'none'
+                          }}
+                        />
+                        {newPost.poll.options.length > 2 && (
+                          <button
+                            onClick={() => removePollOption(index)}
+                            style={{
+                              background: 'rgba(239,68,68,0.2)',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#fca5a5',
+                              width: '32px',
+                              height: '32px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem'}}>
+                      <div style={{display: 'flex', gap: '1rem'}}>
+                        {newPost.poll.options.length < 4 && (
+                          <button
+                            onClick={addPollOption}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #10b981',
+                              borderRadius: '6px',
+                              color: '#10b981',
+                              padding: '0.25rem 0.5rem',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            + Add option
+                          </button>
+                        )}
+                        <select
+                          value={newPost.poll.duration}
+                          onChange={(e) => setNewPost({
+                            ...newPost,
+                            poll: {...newPost.poll, duration: parseInt(e.target.value)}
+                          })}
+                          style={{
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '6px',
+                            color: '#e5e7eb',
+                            padding: '0.25rem',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          <option value={1}>1 hour</option>
+                          <option value={6}>6 hours</option>
+                          <option value={24}>1 day</option>
+                          <option value={72}>3 days</option>
+                          <option value={168}>7 days</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={removePoll}
+                        style={{
+                          background: 'rgba(239,68,68,0.2)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#fca5a5',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        Remove poll
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Compose Actions */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                    {/* Media Upload */}
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => setNewPost({
+                            ...newPost, 
+                            media: e.target.result,
+                            mediaType: file.type.startsWith('video') ? 'video' : 'image'
+                          });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      style={{display: 'none'}}
+                      id="media-upload"
+                    />
+                    <label htmlFor="media-upload" style={{cursor: 'pointer', fontSize: '1.2rem', opacity: 0.7}}>
+                      🖼️
+                    </label>
+
+                    {/* Poll Button */}
+                    <button
+                      onClick={addPollOption}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        opacity: 0.7
+                      }}
+                      disabled={!!newPost.poll}
+                    >
+                      📊
+                    </button>
+
+                    {/* Pin Toggle */}
+                    <button
+                      onClick={() => setNewPost({...newPost, isPinned: !newPost.isPinned})}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        opacity: newPost.isPinned ? 1 : 0.7,
+                        color: newPost.isPinned ? '#10b981' : 'inherit'
+                      }}
+                    >
+                      📌
+                    </button>
+
+                    <span style={{color: '#6b7280', fontSize: '0.9rem', marginLeft: 'auto'}}>
+                      {newPost.content.length}/2000
+                    </span>
+                  </div>
+
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleCreatePost}
+                    disabled={(!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000}
+                    style={{
+                      padding: '0.5rem 1.5rem',
+                      borderRadius: '20px',
+                      background: ((!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000) 
+                        ? 'rgba(107, 114, 128, 0.3)' 
+                        : '#10b981',
+                      opacity: ((!newPost.content.trim() && !newPost.media && !newPost.poll) || newPost.content.length > 2000) ? 0.5 : 1,
+                      fontWeight: '600'
+                    }}
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {/* Bottom row: Filters and Sort */}
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ color: '#e5e7eb', fontSize: '0.9rem' }}>Category:</label>
-                <select 
-                  value={filter} 
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="form-input"
-                  style={{ margin: 0, padding: '0.5rem', minWidth: '120px' }}
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ color: '#e5e7eb', fontSize: '0.9rem' }}>Sort by:</label>
-                <select 
-                  value={sortBy} 
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="form-input"
-                  style={{ margin: 0, padding: '0.5rem', minWidth: '120px' }}
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="source">Source</option>
-                </select>
-              </div>
-
-              <div style={{ marginLeft: 'auto', fontSize: '0.9rem', color: '#9ca3af' }}>
-                Showing {filteredNews.length} of {news.length} articles
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="card" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-            <h3 style={{ color: '#fca5a5', marginBottom: '0.5rem' }}>⚠️ News Service Notice</h3>
-            <p style={{ color: '#fca5a5', fontSize: '0.9rem' }}>
-              Live news feeds are temporarily unavailable. Displaying cached articles with automatic refresh enabled.
-            </p>
           </div>
         )}
 
-        {/* Enhanced News Feed */}
-        <div className="card news-section">
-          <h2 className="section-title">Latest Crypto News</h2>
-          <div className="news-feed-vertical">
-            {filteredNews.length > 0 ? (
-              filteredNews.map((article, index) => (
-                <div key={article.id} className="news-item-twitter">
-                  <div className="news-item-header">
-                    <img 
-                      src={article.sourceImage || 'https://cryptonews.com/favicon.ico'}
-                      alt={article.source}
-                      className="news-item-image"
-                      onError={(e) => {
-                        e.target.src = 'https://cryptonews.com/favicon.ico';
-                      }}
-                    />
-                    <div className="news-item-meta">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <h4 className="news-item-source">{article.source}</h4>
-                          <span className="news-item-time">• {getRelativeTime(article.timestamp)}</span>
-                        </div>
-                        <span 
-                          className={`category-badge category-${article.category}`}
-                          style={{
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: '12px',
-                            fontSize: '0.7rem',
-                            fontWeight: '600',
-                            background: getCategoryColor(article.category),
-                            color: '#ffffff'
-                          }}
-                        >
-                          {article.category.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
+        {/* Twitter-Style Posts Feed */}
+        <div className="card">
+          <h2 className="section-title">Latest Updates</h2>
+
+          <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', overflow: 'hidden'}}>
+            {sortedPosts.map((post) => (
+              <div 
+                key={post.id} 
+                className="twitter-post"
+                style={{
+                  padding: '1.5rem',
+                  borderBottom: sortedPosts[sortedPosts.length - 1].id === post.id ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: post.isPinned 
+                    ? 'rgba(16, 185, 129, 0.05)' 
+                    : 'transparent',
+                  position: 'relative',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!post.isPinned) {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!post.isPinned) {
+                    e.target.style.background = 'transparent';
+                  }
+                }}
+              >
+                {/* Pin indicator */}
+                {post.isPinned && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '1rem',
+                    color: '#10b981',
+                    fontSize: '0.9rem'
+                  }}>
+                    📌 <span>Pinned</span>
                   </div>
-                  <div className="news-item-content">
-                    <h3 className="news-item-title">{article.title}</h3>
-                    <p className="news-item-description">{article.excerpt}</p>
-                    <div style={{ 
+                )}
+
+                {/* Post header */}
+                <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: post.type === 'admin' 
+                      ? 'linear-gradient(45deg, #10b981, #34d399)' 
+                      : 'rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem',
+                    flexShrink: 0
+                  }}>
+                    {post.type === 'admin' ? '👑' : '📰'}
+                  </div>
+
+                  <div style={{flex: 1}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                      <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{post.author}</span>
+                      <span style={{color: '#6b7280'}}>@chaoscoin</span>
+                      <span style={{color: '#6b7280'}}>•</span>
+                      <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
+                        {formatTime(post.timestamp)}
+                      </span>
+                    </div>
+
+                    {/* Post content */}
+                    {post.content && (
+                      <div style={{
+                        marginBottom: '1rem', 
+                        lineHeight: '1.6',
+                        fontSize: '1rem',
+                        color: '#e5e7eb'
+                      }}>
+                        {post.content}
+                      </div>
+                    )}
+
+                    {/* Media */}
+                    {post.media && (
+                      <div style={{marginBottom: '1rem', borderRadius: '16px', overflow: 'hidden'}}>
+                        {post.mediaType === 'video' ? (
+                          <video 
+                            src={post.media} 
+                            controls
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <img 
+                            src={post.media} 
+                            alt="Post media"
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Poll */}
+                    {post.poll && (
+                      <div style={{
+                        marginBottom: '1rem',
+                        padding: '1rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}>
+                        <div style={{fontWeight: '600', marginBottom: '1rem', color: '#e5e7eb'}}>
+                          {post.poll.question}
+                        </div>
+                        {post.poll.options.map((option, index) => (
+                          <div key={index} style={{
+                            padding: '0.75rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            marginBottom: '0.5rem',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}>
+                            {option}
+                          </div>
+                        ))}
+                        <div style={{fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem'}}>
+                          {post.poll.duration} hours remaining
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Post actions - Twitter style */}
+                    <div style={{
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center',
-                      marginTop: '0.75rem'
+                      paddingTop: '0.75rem',
+                      marginTop: '0.75rem',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                      {article.url !== "#" && (
-                        <a href={article.url} target="_blank" rel="noopener noreferrer" className="news-item-link">
-                          Read full article
-                        </a>
+                      <div style={{display: 'flex', gap: '4rem', fontSize: '0.9rem'}}>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                          e.target.style.color = '#1da1f2';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
+                        }}>
+                          💬 {post.replies || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                          e.target.style.color = '#10b981';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
+                        }}>
+                          🔄 {post.retweets || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+                          e.target.style.color = '#ef4444';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
+                        }}>
+                          ❤️ {post.likes || 0}
+                        </button>
+                        <button style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          cursor: 'pointer',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(107, 114, 128, 0.1)';
+                          e.target.style.color = '#9ca3af';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent';
+                          e.target.style.color = '#6b7280';
+                        }}>
+                          📤
+                        </button>
+                      </div>
+
+                      {/* Admin actions */}
+                      {isAdmin && post.type === 'admin' && (
+                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                          <button
+                            onClick={() => togglePin(post.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #10b981',
+                              borderRadius: '16px',
+                              color: '#10b981',
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {post.isPinned ? 'Unpin' : 'Pin'}
+                          </button>
+                          <button
+                            onClick={() => deletePost(post.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #ef4444',
+                              borderRadius: '16px',
+                              color: '#ef4444',
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       )}
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>
-                        {article.publishedTime}
-                      </span>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
-                <h3>No articles found</h3>
-                <p>Try adjusting your search terms or category filter.</p>
               </div>
-            )}
+            ))}
           </div>
         </div>
-
-        {/* News Statistics */}
+         {/* Crypto News Feed - Twitter Style */}
         <div className="card">
-          <h3 className="section-title">📊 News Statistics</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-            <div className="market-stat">
-              <div className="market-stat-label">Total Articles</div>
-              <div className="market-stat-value">{news.length}</div>
+          <h2 className="section-title">Latest Crypto News</h2>
+          {loading ? (
+            <div className="text-center" style={{padding: '2rem'}}>
+              <span className="spinner"></span>
+              <p className="text-gray">Loading news...</p>
             </div>
-            <div className="market-stat">
-              <div className="market-stat-label">Sources</div>
-              <div className="market-stat-value">{new Set(news.map(a => a.source)).size}</div>
+          ) : error ? (
+            <div className="text-center" style={{padding: '2rem'}}>
+              <p className="text-gray">{error}</p>
+              <button onClick={fetchNewsData} className="btn btn-primary" style={{marginTop: '1rem'}}>
+                Retry
+              </button>
             </div>
-            <div className="market-stat">
-              <div className="market-stat-label">Categories</div>
-              <div className="market-stat-value">{categories.length - 1}</div>
+          ) : (
+            <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', overflow: 'hidden'}}>
+              {news.map((article, index) => (
+                <div 
+                  key={index} 
+                  className="twitter-post"
+                  style={{
+                    padding: '1.5rem',
+                    borderBottom: index === news.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'transparent',
+                    position: 'relative',
+                    transition: 'background 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'transparent';
+                  }}
+                  onClick={() => article.url !== "#" && window.open(article.url, '_blank')}
+                >
+                  {/* News header */}
+                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '1rem'}}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: article.source === 'CHAOS Official' ? 
+                        'linear-gradient(45deg, #10b981, #34d399)' :
+                        article.source === 'Avalanche Labs' ?
+                        'linear-gradient(45deg, #e74c3c, #c0392b)' :
+                        article.source === 'DeFi Pulse' ?
+                        'linear-gradient(45deg, #3498db, #2980b9)' :
+                        article.source === 'Financial Times' ?
+                        'linear-gradient(45deg, #9b59b6, #8e44ad)' :
+                        article.source === 'GameFi Report' ?
+                        'linear-gradient(45deg, #f39c12, #e67e22)' :
+                        article.source === 'Crypto Security Weekly' ?
+                        'linear-gradient(45deg, #34495e, #2c3e50)' :
+                        'linear-gradient(45deg, #1da1f2, #1991da)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      flexShrink: 0,
+                      border: '2px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      {article.sourceIcon || article.image || '📰'}
+                    </div>
+
+                    <div style={{flex: 1}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                        <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{article.source || "Crypto News"}</span>
+                        <span style={{
+                          color: '#1da1f2',
+                          fontSize: '12px',
+                          background: '#1da1f2',
+                          borderRadius: '50%',
+                          width: '16px',
+                          height: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white'
+                        }}>✓</span>
+                        <span style={{color: '#6b7280'}}>•</span>
+                        <span style={{color: '#6b7280', fontSize: '0.9rem'}}>
+                          {formatTime(article.publishedAt)}
+                        </span>
+                      </div>
+
+                      {/* News content */}
+                      <div style={{
+                        marginBottom: '1rem', 
+                        lineHeight: '1.6',
+                        fontSize: '1rem',
+                        color: '#e5e7eb'
+                      }}>
+                        <h3 style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '600',
+                          margin: '0 0 0.5rem 0',
+                          color: '#ffffff',
+                          lineHeight: '1.4'
+                        }}>
+                          {article.title}
+                        </h3>
+                        <p style={{
+                          margin: '0',
+                          color: '#8b98a5',
+                          fontSize: '0.95rem',
+                          lineHeight: '1.5'
+                        }}>
+                          {article.description}
+                        </p>
+                      </div>
+
+                      {/* News actions - Twitter style */}
+                      <div style={{
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        paddingTop: '0.75rem',
+                        marginTop: '0.75rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+                      }}>
+                        <div style={{display: 'flex', gap: '4rem', fontSize: '0.9rem'}}>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                            e.target.style.color = '#1da1f2';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            💬 {Math.floor(Math.random() * 20)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                            e.target.style.color = '#10b981';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            🔄 {Math.floor(Math.random() * 50)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.target.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            ❤️ {Math.floor(Math.random() * 100)}
+                          </button>
+                          <button style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6b7280',
+                            cursor: 'pointer',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '16px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(107, 114, 128, 0.1)';
+                            e.target.style.color = '#9ca3af';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#6b7280';
+                          }}>
+                            📤
+                          </button>
+                        </div>
+
+                        {/* Read article link */}
+                        {article.url !== "#" && (
+                          <a 
+                            href={article.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                              color: '#1da1f2',
+                              textDecoration: 'none',
+                              fontSize: '0.85rem',
+                              fontWeight: '400',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              background: 'rgba(29, 161, 242, 0.1)',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = 'rgba(29, 161, 242, 0.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = 'rgba(29, 161, 242, 0.1)';
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Read article ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="market-stat">
-              <div className="market-stat-label">Last Updated</div>
-              <div className="market-stat-value" style={{ fontSize: '0.8rem' }}>
-                {news.length > 0 ? getRelativeTime(Math.max(...news.map(a => new Date(a.timestamp)))) : 'Never'}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
   );
-
-  // Helper function for category colors
-  function getCategoryColor(category) {
-    const colors = {
-      bitcoin: 'rgba(247, 147, 26, 0.8)',
-      ethereum: 'rgba(98, 126, 234, 0.8)',
-      defi: 'rgba(16, 185, 129, 0.8)',
-      gaming: 'rgba(168, 85, 247, 0.8)',
-      regulation: 'rgba(239, 68, 68, 0.8)',
-      security: 'rgba(245, 158, 11, 0.8)',
-      blockchain: 'rgba(59, 130, 246, 0.8)',
-      general: 'rgba(107, 114, 128, 0.8)'
-    };
-    return colors[category] || colors.general;
-  }
 }
