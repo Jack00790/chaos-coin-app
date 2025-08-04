@@ -8,300 +8,250 @@ import { chaosCoinContract } from "../lib/contract";
 export default function Home() {
   const account = useActiveAccount();
   const [marketData, setMarketData] = useState({
+    price: 0.000001,
     marketCap: "Loading...",
     volume24h: "Loading...",
-    price: 0
+    priceChange24h: 0
   });
-  const [gainers, setGainers] = useState([]);
-  const [losers, setLosers] = useState([]);
+  const [cryptoMovers, setCryptoMovers] = useState({
+    gainers: [],
+    losers: []
+  });
   const [news, setNews] = useState([]);
   const [portfolioChange, setPortfolioChange] = useState({ amount: 0, percentage: 0 });
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errors, setErrors] = useState({});
 
-  // Get user's CHAOS balance with error handling
-  const { data: balance, error: balanceError } = useReadContract({
+  // Safely read balance with comprehensive error handling
+  const { data: balance, error: balanceError, isLoading: balanceLoading } = useReadContract({
     contract: chaosCoinContract,
     method: balanceOf,
-    params: account ? [account.address] : undefined,
+    params: account?.address ? [account.address] : undefined,
   });
 
   useEffect(() => {
-    const initializeData = async () => {
-      try {
-        // Use Promise.allSettled to prevent any single failure from breaking everything
-        const results = await Promise.allSettled([
-          safelyFetchMarketData(),
-          safelyFetchTopMovers(), 
-          safelyFetchCryptoNews()
-        ]);
-        
-        // Log any failures but don't throw
-        results.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            const functionNames = ['fetchMarketData', 'fetchTopMovers', 'fetchCryptoNews'];
-            console.warn(`${functionNames[index]} failed:`, result.reason);
-          }
-        });
-        
-        setDataLoaded(true);
-      } catch (error) {
-        console.error("Error initializing page data:", error);
-        // Set fallback data for everything
-        setFallbackData();
-        setDataLoaded(true);
-      }
-    };
-
-    initializeData();
+    initializeApp();
   }, []);
 
-  const safelyFetchMarketData = async () => {
+  const initializeApp = async () => {
+    setIsLoading(true);
+    
+    // Use Promise.allSettled to prevent any single failure from crashing the app
+    const dataPromises = [
+      fetchMarketDataSafely(),
+      fetchCryptoMoversSafely(),
+      fetchCryptoNewsSafely()
+    ];
+
     try {
-      await fetchMarketData();
+      const results = await Promise.allSettled(dataPromises);
+      
+      // Log any failures but continue with fallbacks
+      results.forEach((result, index) => {
+        const functionNames = ['Market Data', 'Crypto Movers', 'Crypto News'];
+        if (result.status === 'rejected') {
+          console.warn(`${functionNames[index]} failed:`, result.reason);
+          setErrors(prev => ({ ...prev, [functionNames[index].toLowerCase().replace(' ', '_')]: result.reason.message }));
+        }
+      });
     } catch (error) {
-      console.warn("Market data fetch failed, using fallback");
+      console.error("Critical error initializing app:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMarketDataSafely = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(
+        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`,
+        { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Market API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data?.pairs?.length > 0) {
+        const pair = data.pairs[0];
+        setMarketData({
+          price: parseFloat(pair.priceUsd || "0.000001"),
+          marketCap: pair.marketCap ? `$${(pair.marketCap / 1000000).toFixed(2)}M` : "N/A",
+          volume24h: pair.volume?.h24 ? `$${(pair.volume.h24 / 1000000).toFixed(2)}M` : "N/A",
+          priceChange24h: parseFloat(pair.priceChange?.h24 || "0")
+        });
+      } else {
+        throw new Error("No trading pairs found");
+      }
+    } catch (error) {
+      console.warn("Using fallback market data:", error.message);
       setMarketData({
+        price: 0.000001,
         marketCap: "N/A",
         volume24h: "N/A",
-        price: 0.000001
+        priceChange24h: 0
       });
     }
   };
 
-  const safelyFetchTopMovers = async () => {
+  const fetchCryptoMoversSafely = async () => {
     try {
-      await fetchTopMovers();
-    } catch (error) {
-      console.warn("Top movers fetch failed, using fallback");
-      setFallbackMovers();
-    }
-  };
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-  const safelyFetchCryptoNews = async () => {
-    try {
-      await fetchCryptoNews();
-    } catch (error) {
-      console.warn("Crypto news fetch failed, using fallback");
-      setFallbackNews();
-    }
-  };
-
-  const fetchMarketData = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    try {
-      // Fetch token data from DexScreener with timeout
       const response = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`,
-        { signal: controller.signal }
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h',
+        { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
       );
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`CoinGecko API returned ${response.status}`);
       }
-      
+
       const data = await response.json();
 
-      if (data.pairs && data.pairs.length > 0) {
-        const pair = data.pairs[0];
-        setMarketData({
-          marketCap: pair.marketCap ? `$${(pair.marketCap / 1000000).toFixed(2)}M` : "N/A",
-          volume24h: pair.volume?.h24 ? `$${(pair.volume.h24 / 1000000).toFixed(2)}M` : "N/A",
-          price: parseFloat(pair.priceUsd || "0")
-        });
-      } else {
-        throw new Error("No pairs found");
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.warn("Market data request timed out");
-      }
-      throw error;
-    }
-  };
-
-  const fetchTopMovers = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    try {
-      // Fetch top 100 coins and filter for actual gainers and losers
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h',
-        { signal: controller.signal }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-
-      if (data && Array.isArray(data) && data.length > 0) {
-        // Filter and sort gainers (positive changes only)
-        const gainersFiltered = data
+      if (Array.isArray(data) && data.length > 0) {
+        const gainers = data
           .filter(coin => coin.price_change_percentage_24h > 0)
           .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
-          .slice(0, 3);
+          .slice(0, 3)
+          .map(coin => ({
+            symbol: coin.symbol.toUpperCase(),
+            name: coin.name,
+            price: coin.current_price,
+            change: coin.price_change_percentage_24h,
+            icon: coin.image
+          }));
 
-        // Filter and sort losers (negative changes only)
-        const losersFiltered = data
+        const losers = data
           .filter(coin => coin.price_change_percentage_24h < 0)
           .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
-          .slice(0, 3);
-
-        if (gainersFiltered.length > 0) {
-          setGainers(gainersFiltered.map(coin => ({
+          .slice(0, 3)
+          .map(coin => ({
             symbol: coin.symbol.toUpperCase(),
             name: coin.name,
             price: coin.current_price,
             change: coin.price_change_percentage_24h,
             icon: coin.image
-          })));
-        } else {
-          setGainersToFallback();
-        }
+          }));
 
-        if (losersFiltered.length > 0) {
-          setLosers(losersFiltered.map(coin => ({
-            symbol: coin.symbol.toUpperCase(),
-            name: coin.name,
-            price: coin.current_price,
-            change: coin.price_change_percentage_24h,
-            icon: coin.image
-          })));
-        } else {
-          setLosersToFallback();
-        }
+        setCryptoMovers({ gainers, losers });
       } else {
-        throw new Error("Invalid API response");
+        throw new Error("Invalid market data received");
       }
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.warn("Top movers request timed out");
-      }
-      throw error;
+      console.warn("Using fallback crypto movers:", error.message);
+      setCryptoMovers({
+        gainers: [
+          { symbol: "BTC", name: "Bitcoin", price: 45000, change: 5.2, icon: "https://via.placeholder.com/32x32/f7931a/ffffff?text=₿" },
+          { symbol: "ETH", name: "Ethereum", price: 3000, change: 3.8, icon: "https://via.placeholder.com/32x32/627eea/ffffff?text=Ξ" },
+          { symbol: "SOL", name: "Solana", price: 100, change: 7.1, icon: "https://via.placeholder.com/32x32/9945ff/ffffff?text=◎" }
+        ],
+        losers: [
+          { symbol: "ADA", name: "Cardano", price: 0.5, change: -2.1, icon: "https://via.placeholder.com/32x32/0033ad/ffffff?text=₳" },
+          { symbol: "DOT", name: "Polkadot", price: 7, change: -3.5, icon: "https://via.placeholder.com/32x32/e6007a/ffffff?text=●" },
+          { symbol: "LINK", name: "Chainlink", price: 15, change: -1.8, icon: "https://via.placeholder.com/32x32/2a5ada/ffffff?text=🔗" }
+        ]
+      });
     }
   };
 
-  const setFallbackMovers = () => {
-    setGainersToFallback();
-    setLosersToFallback();
-  };
-
-  const setGainersToFallback = () => {
-    setGainers([
-      { symbol: "BTC", name: "Bitcoin", price: 45000, change: 5.2, icon: "https://via.placeholder.com/32" },
-      { symbol: "ETH", name: "Ethereum", price: 3000, change: 3.8, icon: "https://via.placeholder.com/32" },
-      { symbol: "SOL", name: "Solana", price: 100, change: 7.1, icon: "https://via.placeholder.com/32" }
-    ]);
-  };
-
-  const setLosersToFallback = () => {
-    setLosers([
-      { symbol: "ADA", name: "Cardano", price: 0.5, change: -2.1, icon: "https://via.placeholder.com/32" },
-      { symbol: "DOT", name: "Polkadot", price: 7, change: -3.5, icon: "https://via.placeholder.com/32" },
-      { symbol: "LINK", name: "Chainlink", price: 15, change: -1.8, icon: "https://via.placeholder.com/32" }
-    ]);
-  };
-
-  const fetchCryptoNews = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-
+  const fetchCryptoNewsSafely = async () => {
     try {
-      // Using RSS2JSON service for CoinTelegraph news with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const response = await fetch(
         'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6',
-        { signal: controller.signal }
+        { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
       );
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
-        throw new Error(`News API error! status: ${response.status}`);
+        throw new Error(`News API returned ${response.status}`);
       }
-      
+
       const data = await response.json();
 
-      if (data.status === 'ok' && data.items && data.items.length > 0) {
+      if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
         const articles = data.items.map(item => ({
-          title: item.title || "Crypto News Update",
-          excerpt: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 120) + '...' : "Latest cryptocurrency news and market updates...",
+          title: item.title || "Crypto Market Update",
+          excerpt: (item.description || "Latest cryptocurrency news and market analysis...")
+            .replace(/<[^>]*>/g, '')
+            .substring(0, 140) + '...',
           timestamp: item.pubDate ? new Date(item.pubDate).toLocaleDateString() : "Recent",
-          image: item.thumbnail || item.enclosure?.link || 'https://via.placeholder.com/300x200?text=Crypto+News',
+          image: item.thumbnail || 'https://via.placeholder.com/300x200/1a1a1a/10b981?text=Crypto+News',
           url: item.link || "#"
         }));
         setNews(articles);
       } else {
-        throw new Error("Invalid news API response");
+        throw new Error("Invalid news data received");
       }
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.warn("News request timed out");
-      }
-      throw error;
+      console.warn("Using fallback crypto news:", error.message);
+      setNews([
+        {
+          title: "CHAOS Token Ecosystem Expansion",
+          excerpt: "The CHAOS token continues to build momentum with new DeFi integrations and community-driven initiatives across the Avalanche network...",
+          timestamp: "2 hours ago",
+          image: "https://via.placeholder.com/300x200/1a1a1a/10b981?text=CHAOS+Update",
+          url: "#"
+        },
+        {
+          title: "Avalanche Network Growth",
+          excerpt: "Avalanche sees continued adoption as developers build innovative DeFi solutions with fast transaction speeds and low fees...",
+          timestamp: "4 hours ago",
+          image: "https://via.placeholder.com/300x200/e84142/ffffff?text=Avalanche",
+          url: "#"
+        },
+        {
+          title: "DeFi Market Analysis",
+          excerpt: "Decentralized finance protocols show strong fundamentals as total value locked increases and user adoption grows steadily...",
+          timestamp: "6 hours ago",
+          image: "https://via.placeholder.com/300x200/2563eb/ffffff?text=DeFi+Growth",
+          url: "#"
+        },
+        {
+          title: "Cryptocurrency Market Trends",
+          excerpt: "Market analysis shows positive sentiment as institutional interest continues to drive adoption of digital assets worldwide...",
+          timestamp: "8 hours ago",
+          image: "https://via.placeholder.com/300x200/7c3aed/ffffff?text=Market+Trends",
+          url: "#"
+        }
+      ]);
     }
   };
 
-  const setFallbackNews = () => {
-    const fallbackNews = [
-      {
-        title: "CHAOS Token Launch Success",
-        excerpt: "The CHAOS token has successfully launched on Avalanche network with strong community support and innovative DeFi features...",
-        timestamp: "1 hour ago",
-        image: "https://via.placeholder.com/300x200?text=CHAOS+Launch",
-        url: "#"
-      },
-      {
-        title: "Bitcoin Market Analysis",
-        excerpt: "Technical analysis shows strong support levels as institutional interest continues to grow across major markets...",
-        timestamp: "3 hours ago",
-        image: "https://via.placeholder.com/300x200?text=Bitcoin+Analysis",
-        url: "#"
-      },
-      {
-        title: "Ethereum Development Updates",
-        excerpt: "Latest developments in Ethereum ecosystem show promising improvements in scalability and user experience...",
-        timestamp: "5 hours ago",
-        image: "https://via.placeholder.com/300x200?text=Ethereum+Updates",
-        url: "#"
-      },
-      {
-        title: "DeFi Market Growth",
-        excerpt: "Decentralized finance protocols continue to see increased activity as total value locked reaches new heights...",
-        timestamp: "7 hours ago",
-        image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
-        url: "#"
-      }
-    ];
-    setNews(fallbackNews);
-  };
-
-  const setFallbackData = () => {
-    setMarketData({
-      marketCap: "N/A",
-      volume24h: "N/A",
-      price: 0.000001
-    });
-    setFallbackMovers();
-    setFallbackNews();
-  };
-
   const formatBalance = (balance) => {
+    if (!balance) return "0.00";
     try {
-      if (!balance) return "0.00";
       const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
-      if (isNaN(tokens)) return "0.00";
-      return tokens.toFixed(2);
+      return isNaN(tokens) ? "0.00" : tokens.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } catch (error) {
       console.error("Error formatting balance:", error);
       return "0.00";
@@ -309,29 +259,27 @@ export default function Home() {
   };
 
   const calculatePortfolioValue = () => {
+    if (!balance || !marketData.price) return "0.00";
     try {
-      if (!balance || !marketData.price || marketData.price === 0) return "0.00";
       const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
-      if (isNaN(tokens)) return "0.00";
       const value = tokens * marketData.price;
-      if (isNaN(value)) return "0.00";
-      return value.toFixed(2);
+      return isNaN(value) ? "0.00" : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } catch (error) {
       console.error("Error calculating portfolio value:", error);
       return "0.00";
     }
   };
 
-  // Show loading state until data is loaded
-  if (!dataLoaded) {
+  if (isLoading) {
     return (
       <div className="app-container">
         <Navbar />
         <main className="main-content">
-          <div className="card">
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <h2>Loading Dashboard...</h2>
-              <p>Please wait while we load your data.</p>
+          <div className="card loading-card">
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
+              <div className="loading-spinner"></div>
+              <h2 style={{ margin: '1rem 0', color: '#10b981' }}>Loading Dashboard</h2>
+              <p className="text-gray">Fetching your portfolio and market data...</p>
             </div>
           </div>
         </main>
@@ -343,54 +291,70 @@ export default function Home() {
     <div className="app-container">
       <Navbar />
       <main className="main-content">
-
-        {/* Portfolio Overview */}
+        
+        {/* Portfolio Overview Section */}
         <div className="portfolio-section">
           <div className="card balance-card">
-            <h2 className="section-title">Portfolio Value</h2>
-            <div className="balance-amount">${calculatePortfolioValue()}</div>
-            <div className={`balance-change ${portfolioChange.amount >= 0 ? 'positive' : 'negative'}`}>
-              {portfolioChange.amount >= 0 ? '+' : ''}${Math.abs(portfolioChange.amount).toFixed(2)} 
-              ({portfolioChange.percentage >= 0 ? '+' : ''}{portfolioChange.percentage.toFixed(2)}%)
+            <h2 className="section-title">💼 Portfolio Overview</h2>
+            <div className="balance-display">
+              <div className="balance-amount">${calculatePortfolioValue()}</div>
+              <div className="balance-tokens">{formatBalance(balance)} CHAOS</div>
+              <div className={`balance-change ${marketData.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
+                {marketData.priceChange24h >= 0 ? '+' : ''}{marketData.priceChange24h.toFixed(2)}% (24h)
+              </div>
             </div>
-            <p className="text-gray">Today's Change</p>
             {balanceError && (
-              <p className="error" style={{ fontSize: '0.8rem', color: '#ff6b6b' }}>
-                Unable to fetch balance. Please check your wallet connection.
-              </p>
+              <div className="error-message">
+                <span>⚠️ Balance fetch error. Please refresh or check wallet connection.</span>
+              </div>
             )}
           </div>
 
-          <div className="card">
-            <h3 className="section-title">Price Chart</h3>
-            <div className="chart-container">
-              <p className="text-gray">Live Chart Coming Soon</p>
+          <div className="card market-overview-card">
+            <h3 className="section-title">📊 CHAOS Market Data</h3>
+            <div className="market-data-grid">
+              <div className="market-stat">
+                <div className="market-stat-label">Current Price</div>
+                <div className="market-stat-value">${marketData.price.toFixed(8)}</div>
+              </div>
+              <div className="market-stat">
+                <div className="market-stat-label">Market Cap</div>
+                <div className="market-stat-value">{marketData.marketCap}</div>
+              </div>
+              <div className="market-stat">
+                <div className="market-stat-label">24h Volume</div>
+                <div className="market-stat-value">{marketData.volume24h}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Market Statistics */}
-        <div className="card">
-          <h2 className="section-title">Market Statistics</h2>
-          <div className="market-data">
-            <div className="market-stat">
-              <div className="market-stat-label">Current Price</div>
-              <div className="market-stat-value">${marketData.price.toFixed(6)}</div>
-            </div>
-            <div className="market-stat">
-              <div className="market-stat-label">Market Cap</div>
-              <div className="market-stat-value">{marketData.marketCap}</div>
-            </div>
-            <div className="market-stat">
-              <div className="market-stat-label">24h Volume</div>
-              <div className="market-stat-value">{marketData.volume24h}</div>
-            </div>
+        {/* Quick Actions */}
+        <div className="card quick-actions-card">
+          <h2 className="section-title">⚡ Quick Actions</h2>
+          <div className="quick-actions-grid">
+            <a href="/buy" className="quick-action-btn buy-btn">
+              <span className="action-icon">🛒</span>
+              <span>Buy CHAOS</span>
+            </a>
+            <a href="/swap" className="quick-action-btn swap-btn">
+              <span className="action-icon">🔄</span>
+              <span>Swap Tokens</span>
+            </a>
+            <a href="/wallet" className="quick-action-btn wallet-btn">
+              <span className="action-icon">👛</span>
+              <span>Wallet</span>
+            </a>
+            <a href="/news" className="quick-action-btn news-btn">
+              <span className="action-icon">📰</span>
+              <span>News Feed</span>
+            </a>
           </div>
         </div>
 
-        {/* Social Links */}
+        {/* Social Media Links */}
         <div className="card social-section">
-          <h2 className="section-title">Follow Chaos Coin</h2>
+          <h2 className="section-title">🌐 Follow Chaos Coin</h2>
           <div className="social-links">
             <a href="https://discord.com/channels/1398769618088231042/1398769618692345918" target="_blank" rel="noopener noreferrer" className="social-link discord">
               <span className="social-icon">💬</span>
@@ -415,23 +379,22 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Top Movers */}
+        {/* Market Movers */}
         <div className="card movers-section">
-          <h2 className="section-title">Today's Top Movers</h2>
+          <h2 className="section-title">📈 Today's Market Movers</h2>
           <div className="movers-container">
-            {/* Top Gainers */}
             <div className="movers-column">
               <h3 className="movers-subtitle text-green">🚀 Top Gainers</h3>
               <div className="movers-list">
-                {gainers.map((gainer, index) => (
-                  <div key={index} className="mover-item">
+                {cryptoMovers.gainers.map((gainer, index) => (
+                  <div key={`gainer-${index}`} className="mover-item">
                     <div className="mover-info">
                       <img 
                         src={gainer.icon} 
                         alt={gainer.symbol} 
                         className="mover-icon"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/32';
+                          e.target.src = `https://via.placeholder.com/32x32/10b981/ffffff?text=${gainer.symbol.charAt(0)}`;
                         }}
                       />
                       <div>
@@ -440,7 +403,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="mover-price">
-                      <div className="mover-value">${gainer.price.toFixed(4)}</div>
+                      <div className="mover-value">${gainer.price.toLocaleString()}</div>
                       <div className="mover-change positive">
                         +{gainer.change.toFixed(2)}%
                       </div>
@@ -450,19 +413,18 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Top Losers */}
             <div className="movers-column">
               <h3 className="movers-subtitle text-red">📉 Top Losers</h3>
               <div className="movers-list">
-                {losers.map((loser, index) => (
-                  <div key={index} className="mover-item">
+                {cryptoMovers.losers.map((loser, index) => (
+                  <div key={`loser-${index}`} className="mover-item">
                     <div className="mover-info">
                       <img 
                         src={loser.icon} 
                         alt={loser.symbol} 
                         className="mover-icon"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/32';
+                          e.target.src = `https://via.placeholder.com/32x32/ef4444/ffffff?text=${loser.symbol.charAt(0)}`;
                         }}
                       />
                       <div>
@@ -471,7 +433,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="mover-price">
-                      <div className="mover-value">${loser.price.toFixed(4)}</div>
+                      <div className="mover-value">${loser.price.toLocaleString()}</div>
                       <div className="mover-change negative">
                         {loser.change.toFixed(2)}%
                       </div>
@@ -485,29 +447,54 @@ export default function Home() {
 
         {/* Crypto News */}
         <div className="card news-section">
-          <h2 className="section-title">Latest Crypto News</h2>
-          <div className="news-twitter-style">
+          <h2 className="section-title">📰 Latest Crypto News</h2>
+          <div className="news-grid">
             {news.map((article, index) => (
-              <div key={index} className="news-card-twitter">
-                <div className="news-image-twitter">
+              <div key={`news-${index}`} className="news-card">
+                <div className="news-image">
                   <img 
                     src={article.image} 
                     alt={article.title}
-                    className="news-thumb"
+                    className="news-thumbnail"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/120x120?text=News';
+                      e.target.src = 'https://via.placeholder.com/300x200/1a1a1a/10b981?text=Crypto+News';
                     }}
                   />
                 </div>
-                <div className="news-content-twitter">
-                  <h3 className="news-title-twitter">{article.title}</h3>
-                  <p className="news-excerpt-twitter">{article.excerpt}</p>
-                  <span className="news-timestamp-twitter">{article.timestamp}</span>
+                <div className="news-content">
+                  <h3 className="news-title">{article.title}</h3>
+                  <p className="news-excerpt">{article.excerpt}</p>
+                  <div className="news-meta">
+                    <span className="news-timestamp">{article.timestamp}</span>
+                    {article.url !== "#" && (
+                      <a href={article.url} target="_blank" rel="noopener noreferrer" className="news-link">
+                        Read More →
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* System Status */}
+        {Object.keys(errors).length > 0 && (
+          <div className="card system-status">
+            <h3 className="section-title">⚠️ System Status</h3>
+            <div className="status-grid">
+              {Object.entries(errors).map(([service, error]) => (
+                <div key={service} className="status-item error">
+                  <span className="status-label">{service.replace('_', ' ')}</span>
+                  <span className="status-value">Degraded</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-gray" style={{ fontSize: '0.9rem', marginTop: '1rem' }}>
+              Some services are experiencing issues. Fallback data is being used.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
