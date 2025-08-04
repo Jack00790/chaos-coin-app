@@ -241,22 +241,7 @@ export default function Wallet() {
           </div>
         </div>
 
-        {/* YouTube Tutorial */}
-        <div className="card">
-          <h2 className="section-title">How to Import Tokens to MetaMask</h2>
-          <div style={{textAlign: 'center', marginBottom: '1.5rem'}}>
-            <iframe 
-              width="100%" 
-              height="315" 
-              src="https://www.youtube.com/embed/6Gf_kRE4MJU" 
-              title="How to Add Custom Tokens to MetaMask" 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen
-              style={{borderRadius: '12px', maxWidth: '560px'}}
-            />
-          </div>
-        </div>
+        
 
         {/* Token Information */}
         <div className="card">

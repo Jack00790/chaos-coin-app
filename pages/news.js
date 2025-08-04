@@ -23,8 +23,14 @@ export default function News() {
   const ADMIN_WALLET = process.env.NEXT_PUBLIC_TREASURY_ADDRESS;
 
   useEffect(() => {
-    if (account) {
-      setIsAdmin(account.address.toLowerCase() === ADMIN_WALLET?.toLowerCase());
+    if (account && ADMIN_WALLET) {
+      const isAdminUser = account.address.toLowerCase() === ADMIN_WALLET.toLowerCase();
+      setIsAdmin(isAdminUser);
+      console.log('Admin check:', {
+        userAddress: account.address,
+        adminAddress: ADMIN_WALLET,
+        isAdmin: isAdminUser
+      });
     }
     fetchPosts();
     fetchNewsData();
@@ -74,15 +80,25 @@ export default function News() {
   };
 
   const handleCreatePost = async () => {
-    if (!newPost.content.trim() && !newPost.media && !newPost.poll) return;
+    if (!newPost.content.trim() && !newPost.media && !newPost.poll) {
+      setError("Please add some content, media, or create a poll");
+      return;
+    }
+
+    console.log('Creating post as admin:', {
+      isAdmin,
+      userAddress: account?.address,
+      adminWallet: ADMIN_WALLET,
+      content: newPost.content
+    });
+
+    if (!isAdmin) {
+      setError(`Unauthorized: Admin access required. Connected: ${account?.address}, Admin: ${ADMIN_WALLET}`);
+      return;
+    }
 
     // Security validation
     const sanitizedContent = newPost.content.trim().slice(0, 2000); // Limit length
-
-    if (!isAdmin) {
-      setError("Unauthorized: Admin access required");
-      return;
-    }
 
     const post = {
       id: Date.now(),
