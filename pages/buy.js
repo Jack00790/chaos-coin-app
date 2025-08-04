@@ -277,10 +277,11 @@ export default function Buy() {
                   payOptions={{
                     mode: "direct_payment",
                     paymentInfo: {
-                      amount: amount,
+                      amount: parseFloat(amount),
                       currency: "USD",
                       chain: avalanche,
                       sellerAddress: process.env.NEXT_PUBLIC_TREASURY_ADDRESS,
+                      intent: "payment"
                     },
                     metadata: {
                       name: "CHAOS Token Purchase",

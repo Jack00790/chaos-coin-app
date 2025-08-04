@@ -138,6 +138,7 @@ html, body {
 .navigation__item.active {
   background: rgba(16, 185, 129, 0.2);
   border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
 }
 
 .connect-btn {
@@ -1125,7 +1126,7 @@ html, body {
     text-align: center;
     gap: 1.5rem;
   }
-  
+
   .page-logo {
     width: 60px;
     height: 60px;
