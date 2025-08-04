@@ -205,8 +205,10 @@ export default function Home() {
             .replace(/<[^>]*>/g, '')
             .substring(0, 140) + '...',
           timestamp: item.pubDate ? new Date(item.pubDate).toLocaleDateString() : "Recent",
-          image: item.thumbnail || 'https://via.placeholder.com/300x200/1a1a1a/10b981?text=Crypto+News',
-          url: item.link || "#"
+          image: item.thumbnail || item.enclosure?.link || 'https://cryptonews.com/favicon.ico',
+          url: item.link || "#",
+          source: "CoinTelegraph",
+          sourceImage: "https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png"
         }));
         setNews(articles);
       } else {
@@ -219,29 +221,37 @@ export default function Home() {
           title: "CHAOS Token Ecosystem Expansion",
           excerpt: "The CHAOS token continues to build momentum with new DeFi integrations and community-driven initiatives across the Avalanche network...",
           timestamp: "2 hours ago",
-          image: "https://via.placeholder.com/300x200/1a1a1a/10b981?text=CHAOS+Update",
-          url: "#"
+          image: "https://cryptonews.com/favicon.ico",
+          url: "#",
+          source: "CHAOS News",
+          sourceImage: "https://cryptonews.com/favicon.ico"
         },
         {
           title: "Avalanche Network Growth",
           excerpt: "Avalanche sees continued adoption as developers build innovative DeFi solutions with fast transaction speeds and low fees...",
           timestamp: "4 hours ago",
-          image: "https://via.placeholder.com/300x200/e84142/ffffff?text=Avalanche",
-          url: "#"
+          image: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
+          url: "#",
+          source: "Avalanche News",
+          sourceImage: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png"
         },
         {
           title: "DeFi Market Analysis",
           excerpt: "Decentralized finance protocols show strong fundamentals as total value locked increases and user adoption grows steadily...",
           timestamp: "6 hours ago",
-          image: "https://via.placeholder.com/300x200/2563eb/ffffff?text=DeFi+Growth",
-          url: "#"
+          image: "https://cryptonews.com/favicon.ico",
+          url: "#",
+          source: "DeFi Pulse",
+          sourceImage: "https://cryptonews.com/favicon.ico"
         },
         {
           title: "Cryptocurrency Market Trends",
           excerpt: "Market analysis shows positive sentiment as institutional interest continues to drive adoption of digital assets worldwide...",
           timestamp: "8 hours ago",
-          image: "https://via.placeholder.com/300x200/7c3aed/ffffff?text=Market+Trends",
-          url: "#"
+          image: "https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png",
+          url: "#",
+          source: "CoinTelegraph",
+          sourceImage: "https://s3.cointelegraph.com/storage/uploads/view/9b8b7e22de62a6af6e30a25b33b32294.png"
         }
       ]);
     }
@@ -429,12 +439,17 @@ export default function Home() {
             {news.map((article, index) => (
               <div key={`news-${index}`} className="news-item-twitter">
                 <div className="news-item-header">
-                  <div className="news-item-image">
-                    C
-                  </div>
+                  <img 
+                    src={article.sourceImage || article.image || 'https://cryptonews.com/favicon.ico'}
+                    alt={article.source || "Crypto News"}
+                    className="news-item-image"
+                    onError={(e) => {
+                      e.target.src = 'https://cryptonews.com/favicon.ico';
+                    }}
+                  />
                   <div className="news-item-meta">
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <h4 className="news-item-source">Crypto News</h4>
+                      <h4 className="news-item-source">{article.source || "Crypto News"}</h4>
                       <span className="news-item-time">• {article.timestamp}</span>
                     </div>
                   </div>

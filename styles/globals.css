@@ -1739,13 +1739,14 @@ html, body {
   margin-right: 12px;
   object-fit: cover;
   background: linear-gradient(45deg, #10b981, #34d399);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
   flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.news-item-image:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: scale(1.05);
 }
 
 .news-item-meta {
