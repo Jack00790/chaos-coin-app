@@ -295,7 +295,7 @@ export default function Home() {
         {/* Portfolio Overview Section */}
         <div className="portfolio-section">
           <div className="card balance-card">
-            <h2 className="section-title">💼 Portfolio Overview</h2>
+            <h2 className="section-title">Portfolio Overview</h2>
             <div className="balance-display">
               <div className="balance-amount">${calculatePortfolioValue()}</div>
               <div className="balance-tokens">{formatBalance(balance)} CHAOS</div>
@@ -311,7 +311,7 @@ export default function Home() {
           </div>
 
           <div className="card market-overview-card">
-            <h3 className="section-title">📊 CHAOS Market Data</h3>
+            <h3 className="section-title">CHAOS Market Data</h3>
             <div className="market-data-grid">
               <div className="market-stat">
                 <div className="market-stat-label">Current Price</div>
@@ -326,29 +326,6 @@ export default function Home() {
                 <div className="market-stat-value">{marketData.volume24h}</div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="card quick-actions-card">
-          <h2 className="section-title">⚡ Quick Actions</h2>
-          <div className="quick-actions-grid">
-            <a href="/buy" className="quick-action-btn buy-btn">
-              <span className="action-icon">🛒</span>
-              <span>Buy CHAOS</span>
-            </a>
-            <a href="/swap" className="quick-action-btn swap-btn">
-              <span className="action-icon">🔄</span>
-              <span>Swap Tokens</span>
-            </a>
-            <a href="/wallet" className="quick-action-btn wallet-btn">
-              <span className="action-icon">👛</span>
-              <span>Wallet</span>
-            </a>
-            <a href="/news" className="quick-action-btn news-btn">
-              <span className="action-icon">📰</span>
-              <span>News Feed</span>
-            </a>
           </div>
         </div>
 
@@ -445,33 +422,31 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Crypto News */}
+        {/* Crypto News - Twitter Style Feed */}
         <div className="card news-section">
-          <h2 className="section-title">📰 Latest Crypto News</h2>
-          <div className="news-grid">
+          <h2 className="section-title">Latest Crypto News</h2>
+          <div className="news-feed-vertical">
             {news.map((article, index) => (
-              <div key={`news-${index}`} className="news-card">
-                <div className="news-image">
+              <div key={`news-${index}`} className="news-item-twitter">
+                <div className="news-item-header">
                   <img 
-                    src={article.image} 
-                    alt={article.title}
-                    className="news-thumbnail"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/300x200/1a1a1a/10b981?text=Crypto+News';
-                    }}
+                    src="https://via.placeholder.com/40x40/10b981/ffffff?text=C"
+                    alt="Crypto News"
+                    className="news-item-image"
                   />
-                </div>
-                <div className="news-content">
-                  <h3 className="news-title">{article.title}</h3>
-                  <p className="news-excerpt">{article.excerpt}</p>
-                  <div className="news-meta">
-                    <span className="news-timestamp">{article.timestamp}</span>
-                    {article.url !== "#" && (
-                      <a href={article.url} target="_blank" rel="noopener noreferrer" className="news-link">
-                        Read More →
-                      </a>
-                    )}
+                  <div className="news-item-meta">
+                    <h4 className="news-item-source">Crypto News</h4>
+                    <span className="news-item-time">{article.timestamp}</span>
                   </div>
+                </div>
+                <div className="news-item-content">
+                  <h3 className="news-item-title">{article.title}</h3>
+                  <p className="news-item-description">{article.excerpt}</p>
+                  {article.url !== "#" && (
+                    <a href={article.url} target="_blank" rel="noopener noreferrer" className="news-item-link">
+                      Read full article →
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
