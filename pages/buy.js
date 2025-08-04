@@ -1,22 +1,27 @@
 
 import React, { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
+import { PayEmbed } from "thirdweb/react";
+import { createThirdwebClient } from "thirdweb";
+import { avalanche } from "thirdweb/chains";
 import Navbar from "../components/Navbar";
+
+const client = createThirdwebClient({
+  clientId: process.env.NEXT_PUBLIC_TW_CLIENT_ID,
+});
 
 export default function Buy() {
   const account = useActiveAccount();
   const [tokenPrice, setTokenPrice] = useState(0.000001);
   const [priceLastUpdated, setPriceLastUpdated] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState('crypto');
   const [amount, setAmount] = useState('');
   const [estimatedTokens, setEstimatedTokens] = useState('0');
-
-  const THIRDWEB_PAY_CLIENT_ID = "d62cbbba-24b1-4ac0-b048-7781605867e4";
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     fetchTokenPrice();
-    const interval = setInterval(fetchTokenPrice, 30000); // Update every 30 seconds
+    const interval = setInterval(fetchTokenPrice, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -44,7 +49,6 @@ export default function Buy() {
       if (response.ok) {
         const data = await response.json();
         if (data.pairs && data.pairs.length > 0) {
-          // Find Avalanche pairs specifically
           const avalanchePair = data.pairs.find(pair => 
             pair.chainId === 'avalanche' || 
             pair.baseToken?.address?.toLowerCase() === process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS?.toLowerCase()
@@ -83,7 +87,6 @@ export default function Buy() {
     
     const tokens = usdAmount / tokenPrice;
     
-    // Format with appropriate precision based on token amount
     let formattedTokens;
     if (tokens >= 1000000) {
       formattedTokens = (tokens / 1000000).toFixed(2) + 'M';
@@ -105,11 +108,19 @@ export default function Buy() {
     const value = e.target.value;
     if (value === '' || (!isNaN(value) && parseFloat(value) >= 0)) {
       setAmount(value);
+      setShowPayment(false);
     }
   };
 
   const setQuickAmount = (value) => {
     setAmount(value.toString());
+    setShowPayment(false);
+  };
+
+  const handleProceedToPayment = () => {
+    if (amount && parseFloat(amount) > 0 && account) {
+      setShowPayment(true);
+    }
   };
 
   if (isLoading) {
@@ -148,7 +159,7 @@ export default function Buy() {
               <h1 className="page-title buy-chaos-title">Buy CHAOS Tokens</h1>
               <p className="page-description">
                 Purchase CHAOS tokens securely using crypto or fiat currency. 
-                Powered by ThirdWeb Pay with support for 50+ payment networks.
+                Powered by ThirdWeb Pay with support for 150+ payment methods.
               </p>
             </div>
           </div>
@@ -196,27 +207,6 @@ export default function Buy() {
         {/* Purchase Interface */}
         <div className="purchase-section">
           
-          {/* Payment Method Selection */}
-          <div className="card payment-method-card">
-            <h3 className="section-title">💳 Payment Method</h3>
-            <div className="payment-methods">
-              <button 
-                className={`payment-method-btn ${paymentMethod === 'crypto' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('crypto')}
-              >
-                <span className="method-icon">₿</span>
-                <span>Cryptocurrency</span>
-              </button>
-              <button 
-                className={`payment-method-btn ${paymentMethod === 'fiat' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('fiat')}
-              >
-                <span className="method-icon">💳</span>
-                <span>Credit/Debit Card</span>
-              </button>
-            </div>
-          </div>
-
           {/* Amount Input */}
           <div className="card amount-input-card">
             <h3 className="section-title">💵 Purchase Amount</h3>
@@ -231,7 +221,7 @@ export default function Buy() {
                   onChange={handleAmountChange}
                   placeholder="Enter amount"
                   className="amount-input"
-                  min="0"
+                  min="1"
                   step="0.01"
                 />
                 <span className="input-suffix">USD</span>
@@ -257,57 +247,70 @@ export default function Buy() {
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* ThirdWeb Pay Integration */}
-          <div className="card payment-widget-card">
-            <h3 className="section-title">🔐 Secure Payment</h3>
-            
-            {account ? (
-              <div className="payment-widget-container">
-                {amount && parseFloat(amount) > 0 ? (
-                  <iframe
-                    src={`https://pay.thirdweb.com/checkout?clientId=${THIRDWEB_PAY_CLIENT_ID}&amount=${amount}&currency=USD&theme=dark&toAddress=${account.address}&toToken=${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}&toChain=avalanche`}
-                    width="100%"
-                    height="600"
-                    style={{
-                      border: 'none',
-                      borderRadius: '12px',
-                      background: 'rgba(255, 255, 255, 0.05)'
-                    }}
-                    title="ThirdWeb Pay Checkout"
-                    allow="payment"
-                  />
-                ) : (
-                  <div className="payment-placeholder">
-                    <div className="placeholder-icon">💳</div>
-                    <h4>Enter Purchase Amount</h4>
-                    <p>Please enter an amount above to proceed with payment</p>
-                  </div>
-                )}
-              </div>
-            ) : (
+            {!account && (
               <div className="connect-wallet-prompt">
                 <div className="prompt-icon">🔗</div>
                 <h4>Connect Your Wallet</h4>
                 <p>Please connect your wallet to continue with the purchase.</p>
-                <div className="connect-benefits">
-                  <div className="benefit-item">
-                    <span className="benefit-icon">✅</span>
-                    <span>Secure wallet connection</span>
-                  </div>
-                  <div className="benefit-item">
-                    <span className="benefit-icon">✅</span>
-                    <span>Direct token delivery</span>
-                  </div>
-                  <div className="benefit-item">
-                    <span className="benefit-icon">✅</span>
-                    <span>Transaction history tracking</span>
-                  </div>
-                </div>
               </div>
             )}
+
+            {account && amount && parseFloat(amount) >= 1 && !showPayment && (
+              <button 
+                onClick={handleProceedToPayment}
+                className="proceed-payment-btn"
+              >
+                Proceed to Payment
+              </button>
+            )}
           </div>
+
+          {/* ThirdWeb Pay Integration */}
+          {showPayment && account && amount && parseFloat(amount) >= 1 && (
+            <div className="card payment-widget-card">
+              <h3 className="section-title">🔐 Secure Payment</h3>
+              
+              <div className="payment-widget-container">
+                <PayEmbed
+                  client={client}
+                  payOptions={{
+                    mode: "direct_payment",
+                    paymentInfo: {
+                      amount: amount,
+                      chain: avalanche,
+                      token: process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS,
+                      sellerAddress: process.env.NEXT_PUBLIC_TREASURY_ADDRESS,
+                    },
+                    metadata: {
+                      name: "CHAOS Token Purchase",
+                      description: `Purchase ${estimatedTokens} CHAOS tokens`,
+                      image: "/chaos-coin-logo.png",
+                    },
+                  }}
+                  onPaymentSuccess={(result) => {
+                    console.log("Payment successful:", result);
+                    alert(`Payment successful! Transaction hash: ${result.transactionHash}`);
+                    setShowPayment(false);
+                    setAmount('');
+                  }}
+                  onError={(error) => {
+                    console.error("Payment error:", error);
+                    alert("Payment failed. Please try again.");
+                  }}
+                  theme="dark"
+                  className="thirdweb-pay-embed"
+                />
+              </div>
+
+              <button 
+                onClick={() => setShowPayment(false)}
+                className="back-to-amount-btn"
+              >
+                ← Back to Amount Selection
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Security Features */}
@@ -331,8 +334,8 @@ export default function Buy() {
             <div className="security-feature">
               <div className="feature-icon">🌐</div>
               <div className="feature-content">
-                <h4>50+ Payment Networks</h4>
-                <p>Support for major cryptocurrencies and payment methods</p>
+                <h4>150+ Payment Methods</h4>
+                <p>Support for major cryptocurrencies and fiat payment methods</p>
               </div>
             </div>
             <div className="security-feature">
