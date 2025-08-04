@@ -121,28 +121,20 @@ export default function Buy() {
             </p>
           </div>
 
-          {/* ThirdWeb Checkout Widget */}
+          {/* ThirdWeb Pay Checkout */}
           <div style={{marginTop: '2rem'}}>
-            <CheckoutWidget
-              client={client}
-              chain={getActiveChain()}
-              seller={process.env.NEXT_PUBLIC_TREASURY_ADDRESS}
-              name="Chaos Coin Token"
-              description="Purchase CHAOS tokens with crypto or fiat"
-              image="/chaos-coin-logo.png"
-              amount="10" // Default amount in USD
-              purchaseData={{
-                productId: "chaos-coin",
-                tokenAddress: process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS,
-                buyerAddress: account.address,
-                timestamp: Date.now()
-              }}
-              onSuccess={handlePurchaseSuccess}
-              onError={handlePurchaseError}
+            <iframe
+              src="https://thirdweb.com/pay/d62cbbba-24b1-4ac0-b048-7781605867e4"
+              width="100%"
+              height="600"
               style={{
+                border: 'none',
                 borderRadius: '12px',
-                border: '1px solid rgba(16,185,129,0.3)'
+                background: 'rgba(16,185,129,0.1)',
+                minHeight: '600px'
               }}
+              title="Buy CHAOS Tokens"
+              allow="payment"
             />
           </div>
 
