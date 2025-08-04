@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
@@ -15,9 +16,10 @@ export default function Home() {
   const [losers, setLosers] = useState([]);
   const [news, setNews] = useState([]);
   const [portfolioChange, setPortfolioChange] = useState({ amount: 0, percentage: 0 });
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Get user's CHAOS balance
-  const { data: balance } = useReadContract({
+  // Get user's CHAOS balance with error handling
+  const { data: balance, error: balanceError } = useReadContract({
     contract: chaosCoinContract,
     method: balanceOf,
     params: account ? [account.address] : undefined,
@@ -26,25 +28,76 @@ export default function Home() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        await Promise.allSettled([
-          fetchMarketData(),
-          fetchTopMovers(), 
-          fetchCryptoNews()
+        // Use Promise.allSettled to prevent any single failure from breaking everything
+        const results = await Promise.allSettled([
+          safelyFetchMarketData(),
+          safelyFetchTopMovers(), 
+          safelyFetchCryptoNews()
         ]);
+        
+        // Log any failures but don't throw
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            const functionNames = ['fetchMarketData', 'fetchTopMovers', 'fetchCryptoNews'];
+            console.warn(`${functionNames[index]} failed:`, result.reason);
+          }
+        });
+        
+        setDataLoaded(true);
       } catch (error) {
         console.error("Error initializing page data:", error);
+        // Set fallback data for everything
+        setFallbackData();
+        setDataLoaded(true);
       }
     };
 
     initializeData();
   }, []);
 
-  const fetchMarketData = async () => {
+  const safelyFetchMarketData = async () => {
     try {
-      // Fetch token data from DexScreener
+      await fetchMarketData();
+    } catch (error) {
+      console.warn("Market data fetch failed, using fallback");
+      setMarketData({
+        marketCap: "N/A",
+        volume24h: "N/A",
+        price: 0.000001
+      });
+    }
+  };
+
+  const safelyFetchTopMovers = async () => {
+    try {
+      await fetchTopMovers();
+    } catch (error) {
+      console.warn("Top movers fetch failed, using fallback");
+      setFallbackMovers();
+    }
+  };
+
+  const safelyFetchCryptoNews = async () => {
+    try {
+      await fetchCryptoNews();
+    } catch (error) {
+      console.warn("Crypto news fetch failed, using fallback");
+      setFallbackNews();
+    }
+  };
+
+  const fetchMarketData = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    try {
+      // Fetch token data from DexScreener with timeout
       const response = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
+        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`,
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -60,30 +113,29 @@ export default function Home() {
           price: parseFloat(pair.priceUsd || "0")
         });
       } else {
-        // Set fallback data if no pairs found
-        setMarketData({
-          marketCap: "N/A",
-          volume24h: "N/A",
-          price: 0.000001
-        });
+        throw new Error("No pairs found");
       }
     } catch (error) {
-      console.error("Error fetching market data:", error);
-      // Set fallback data on error
-      setMarketData({
-        marketCap: "N/A",
-        volume24h: "N/A",
-        price: 0.000001
-      });
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn("Market data request timed out");
+      }
+      throw error;
     }
   };
 
   const fetchTopMovers = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     try {
       // Fetch top 100 coins and filter for actual gainers and losers
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h',
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`CoinGecko API error! status: ${response.status}`);
@@ -128,11 +180,14 @@ export default function Home() {
           setLosersToFallback();
         }
       } else {
-        setFallbackMovers();
+        throw new Error("Invalid API response");
       }
     } catch (error) {
-      console.error("Error fetching movers:", error);
-      setFallbackMovers();
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn("Top movers request timed out");
+      }
+      throw error;
     }
   };
 
@@ -158,11 +213,17 @@ export default function Home() {
   };
 
   const fetchCryptoNews = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
     try {
-      // Using RSS2JSON service for CoinTelegraph news
+      // Using RSS2JSON service for CoinTelegraph news with timeout
       const response = await fetch(
-        'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6'
+        'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6',
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`News API error! status: ${response.status}`);
@@ -180,46 +241,59 @@ export default function Home() {
         }));
         setNews(articles);
       } else {
-        setFallbackNews();
+        throw new Error("Invalid news API response");
       }
     } catch (error) {
-      console.error("Error fetching news:", error);
-      setFallbackNews();
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn("News request timed out");
+      }
+      throw error;
     }
   };
 
   const setFallbackNews = () => {
     const fallbackNews = [
       {
+        title: "CHAOS Token Launch Success",
+        excerpt: "The CHAOS token has successfully launched on Avalanche network with strong community support and innovative DeFi features...",
+        timestamp: "1 hour ago",
+        image: "https://via.placeholder.com/300x200?text=CHAOS+Launch",
+        url: "#"
+      },
+      {
         title: "Bitcoin Market Analysis",
         excerpt: "Technical analysis shows strong support levels as institutional interest continues to grow across major markets...",
-        timestamp: "1 hour ago",
+        timestamp: "3 hours ago",
         image: "https://via.placeholder.com/300x200?text=Bitcoin+Analysis",
         url: "#"
       },
       {
         title: "Ethereum Development Updates",
         excerpt: "Latest developments in Ethereum ecosystem show promising improvements in scalability and user experience...",
-        timestamp: "3 hours ago",
+        timestamp: "5 hours ago",
         image: "https://via.placeholder.com/300x200?text=Ethereum+Updates",
         url: "#"
       },
       {
         title: "DeFi Market Growth",
         excerpt: "Decentralized finance protocols continue to see increased activity as total value locked reaches new heights...",
-        timestamp: "5 hours ago",
-        image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
-        url: "#"
-      },
-      {
-        title: "Altcoin Market Trends",
-        excerpt: "Market experts analyze current altcoin trends and discuss potential opportunities in the evolving crypto landscape...",
         timestamp: "7 hours ago",
-        image: "https://via.placeholder.com/300x200?text=Altcoin+Trends",
+        image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
         url: "#"
       }
     ];
     setNews(fallbackNews);
+  };
+
+  const setFallbackData = () => {
+    setMarketData({
+      marketCap: "N/A",
+      volume24h: "N/A",
+      price: 0.000001
+    });
+    setFallbackMovers();
+    setFallbackNews();
   };
 
   const formatBalance = (balance) => {
@@ -248,6 +322,23 @@ export default function Home() {
     }
   };
 
+  // Show loading state until data is loaded
+  if (!dataLoaded) {
+    return (
+      <div className="app-container">
+        <Navbar />
+        <main className="main-content">
+          <div className="card">
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <h2>Loading Dashboard...</h2>
+              <p>Please wait while we load your data.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Navbar />
@@ -263,6 +354,11 @@ export default function Home() {
               ({portfolioChange.percentage >= 0 ? '+' : ''}{portfolioChange.percentage.toFixed(2)}%)
             </div>
             <p className="text-gray">Today's Change</p>
+            {balanceError && (
+              <p className="error" style={{ fontSize: '0.8rem', color: '#ff6b6b' }}>
+                Unable to fetch balance. Please check your wallet connection.
+              </p>
+            )}
           </div>
 
           <div className="card">
@@ -330,7 +426,14 @@ export default function Home() {
                 {gainers.map((gainer, index) => (
                   <div key={index} className="mover-item">
                     <div className="mover-info">
-                      <img src={gainer.icon} alt={gainer.symbol} className="mover-icon" />
+                      <img 
+                        src={gainer.icon} 
+                        alt={gainer.symbol} 
+                        className="mover-icon"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/32';
+                        }}
+                      />
                       <div>
                         <div className="mover-symbol">{gainer.symbol}</div>
                         <div className="mover-name">{gainer.name}</div>
@@ -354,7 +457,14 @@ export default function Home() {
                 {losers.map((loser, index) => (
                   <div key={index} className="mover-item">
                     <div className="mover-info">
-                      <img src={loser.icon} alt={loser.symbol} className="mover-icon" />
+                      <img 
+                        src={loser.icon} 
+                        alt={loser.symbol} 
+                        className="mover-icon"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/32';
+                        }}
+                      />
                       <div>
                         <div className="mover-symbol">{loser.symbol}</div>
                         <div className="mover-name">{loser.name}</div>
