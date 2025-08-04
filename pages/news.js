@@ -917,7 +917,19 @@ export default function News() {
                       width: '48px',
                       height: '48px',
                       borderRadius: '50%',
-                      background: 'linear-gradient(45deg, #1da1f2, #1991da)',
+                      background: article.source === 'CHAOS Official' ? 
+                        'linear-gradient(45deg, #10b981, #34d399)' :
+                        article.source === 'Avalanche Labs' ?
+                        'linear-gradient(45deg, #e74c3c, #c0392b)' :
+                        article.source === 'DeFi Pulse' ?
+                        'linear-gradient(45deg, #3498db, #2980b9)' :
+                        article.source === 'Financial Times' ?
+                        'linear-gradient(45deg, #9b59b6, #8e44ad)' :
+                        article.source === 'GameFi Report' ?
+                        'linear-gradient(45deg, #f39c12, #e67e22)' :
+                        article.source === 'Crypto Security Weekly' ?
+                        'linear-gradient(45deg, #34495e, #2c3e50)' :
+                        'linear-gradient(45deg, #1da1f2, #1991da)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -925,14 +937,13 @@ export default function News() {
                       flexShrink: 0,
                       border: '2px solid rgba(255, 255, 255, 0.1)'
                     }}>
-                      📰
+                      {article.sourceIcon || article.image || '📰'}
                     </div>
 
                     <div style={{flex: 1}}>
                       <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
                         <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{article.source || "Crypto News"}</span>
                         <span style={{
-                          content: "✓",
                           color: '#1da1f2',
                           fontSize: '12px',
                           background: '#1da1f2',
@@ -970,7 +981,7 @@ export default function News() {
                           margin: '0',
                           color: '#8b98a5',
                           fontSize: '0.95rem',
-                          lineHeight: '1.4'
+                          lineHeight: '1.5'
                         }}>
                           {article.description}
                         </p>
