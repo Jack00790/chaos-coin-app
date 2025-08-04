@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { balanceOf } from "thirdweb/extensions/erc20";
 import { chaosCoinContract } from "../lib/contract";
-import { getTransactionHistory, subscribeToBalanceUpdates } from "../lib/transactionHistory";
-import { getTokenPrice, subscribeToPriceUpdates } from "../lib/uniswap";
+
 import Navbar from "../components/Navbar";
 
 export default function Wallet() {
@@ -16,19 +15,14 @@ export default function Wallet() {
     data: balance, 
     isLoading: loadingBalance, 
     error: balanceError 
-  } = useReadContract(
-    balanceOf,
-    {
-      contract: chaosCoinContract,
-      address: account?.address || "0x0000000000000000000000000000000000000000",
-    }
-  );
+  } = useReadContract({
+    contract: chaosCoinContract,
+    method: balanceOf,
+    params: account ? [account.address] : undefined,
+  });
 
   useEffect(() => {
     fetchTokenPrice();
-    if (account) {
-      loadTransactionHistory();
-    }
   }, [account]);
 
   const fetchTokenPrice = async () => {

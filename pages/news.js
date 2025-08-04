@@ -119,7 +119,7 @@ export default function News() {
       const updatedPosts = [post, ...posts];
       setPosts(updatedPosts);
       localStorage.setItem('chaoscoin_posts', JSON.stringify(updatedPosts));
-      
+
       setNewPost({ 
         content: "", 
         isPinned: false, 
@@ -229,7 +229,8 @@ export default function News() {
         <h1 className="page-title">News & Updates</h1>
 
         {/* Twitter-Style Admin Posting */}
-        {isAdmin && (
+        {account && account.address && process.env.NEXT_PUBLIC_TREASURY_ADDRESS && 
+         account.address.toLowerCase() === process.env.NEXT_PUBLIC_TREASURY_ADDRESS.toLowerCase() && (
           <div className="card twitter-compose">
             <div className="admin-badge">
               👑 Admin Posting
@@ -248,7 +249,7 @@ export default function News() {
               }}>
                 👑
               </div>
-              
+
               <div style={{flex: 1}}>
                 <textarea
                   className="twitter-compose-textarea"
@@ -578,7 +579,7 @@ export default function News() {
                   }}>
                     {post.type === 'admin' ? '👑' : '📰'}
                   </div>
-                  
+
                   <div style={{flex: 1}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
                       <span style={{fontWeight: 'bold', color: '#e5e7eb'}}>{post.author}</span>

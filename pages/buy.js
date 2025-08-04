@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
-import { CheckoutWidget } from "thirdweb/react";
 import Navbar from "../components/Navbar";
-import { client } from "../lib/payment";
+import { client } from "../lib/client";
 import { getActiveChain } from "../lib/contract";
-import { validatePayment, checkRateLimit } from "../lib/payment";
-import { sanitizeInput, validatePriceData } from "../lib/security";
+import { validatePriceData } from "../lib/security";
 
 export default function Buy() {
   const account = useActiveAccount();
@@ -52,26 +50,6 @@ export default function Buy() {
     }
   };
 
-  const handlePurchaseSuccess = (result) => {
-    console.log("Purchase successful:", result);
-
-    // Track successful purchase
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'purchase', {
-        event_category: 'ecommerce',
-        event_label: 'CHAOS_token',
-        value: result.amount
-      });
-    }
-
-    alert("Purchase successful! Tokens will appear in your wallet shortly.");
-  };
-
-  const handlePurchaseError = (error) => {
-    console.error("Purchase failed:", error);
-    alert("Purchase failed. Please try again or contact support.");
-  };
-
   if (!account) {
     return (
       <div className="app-container">
@@ -81,22 +59,6 @@ export default function Buy() {
           <div className="card text-center">
             <h2 className="section-title">Connect Your Wallet</h2>
             <p className="text-gray mb-3">Please connect your wallet to purchase CHAOS tokens</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Rate limiting check
-  if (!checkRateLimit(account.address)) {
-    return (
-      <div className="app-container">
-        <Navbar />
-        <main className="main-content">
-          <h1 className="page-title">Buy Chaos Coin</h1>
-          <div className="card text-center">
-            <h2 className="section-title">Rate Limit Exceeded</h2>
-            <p className="text-gray mb-3">Too many purchase attempts. Please wait before trying again.</p>
           </div>
         </main>
       </div>
