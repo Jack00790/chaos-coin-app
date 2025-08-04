@@ -578,18 +578,29 @@ export default function News() {
         <div className="card">
           <h2 className="section-title">Latest Updates</h2>
 
-          <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0'}}>
+          <div className="twitter-feed" style={{display: 'flex', flexDirection: 'column', gap: '0', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', overflow: 'hidden'}}>
             {sortedPosts.map((post) => (
               <div 
                 key={post.id} 
                 className="twitter-post"
                 style={{
                   padding: '1.5rem',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderBottom: sortedPosts[sortedPosts.length - 1].id === post.id ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
                   background: post.isPinned 
                     ? 'rgba(16, 185, 129, 0.05)' 
                     : 'transparent',
-                  position: 'relative'
+                  position: 'relative',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!post.isPinned) {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!post.isPinned) {
+                    e.target.style.background = 'transparent';
+                  }
                 }}
               >
                 {/* Pin indicator */}
