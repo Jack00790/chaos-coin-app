@@ -7,7 +7,6 @@ export default function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home", icon: "", iconType: "home" },
-    { href: "/buy", label: "Buy", icon: "", iconType: "buy" },
     { href: "/swap", label: "Swap", icon: "", iconType: "swap" },
     { href: "/news", label: "News", icon: "", iconType: "news" },
     { href: "/wallet", label: "Wallet", icon: "", iconType: "wallet" }
