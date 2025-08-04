@@ -1190,44 +1190,44 @@ html, body {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .quick-actions-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .movers-container {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
+
   .news-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .status-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .balance-amount {
     font-size: 2rem;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .price-stats {
     grid-template-columns: 1fr;
   }
-  
+
   .payment-methods {
     grid-template-columns: 1fr;
   }
-  
+
   .quick-amount-buttons {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .security-grid {
     grid-template-columns: 1fr;
   }
@@ -1967,7 +1967,9 @@ html, body {
 
 .copy-btn:hover {
   background: #059669;
-}.tutorial-video {
+}
+
+.tutorial-video {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
