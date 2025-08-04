@@ -1050,6 +1050,32 @@ html, body {
   color: #10b981;
 }
 
+/* Page Header with Logo */
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.page-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  border: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.page-text {
+  flex: 1;
+}
+
+.buy-chaos-title {
+  color: #10b981;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
 /* Payment Widget */
 .payment-widget-card {
   background: rgba(255, 255, 255, 0.03);
@@ -1060,11 +1086,50 @@ html, body {
   border-radius: 12px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
+  min-height: 400px;
+}
+
+.payment-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.payment-placeholder h4 {
+  color: #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.payment-placeholder p {
+  color: #9ca3af;
+  max-width: 300px;
 }
 
 .connect-wallet-prompt {
   text-align: center;
   padding: 3rem 2rem;
+}
+
+@media (max-width: 768px) {
+  .page-header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .page-logo {
+    width: 60px;
+    height: 60px;
+  }
 }
 
 .prompt-icon {

@@ -26,17 +26,40 @@ export default function Buy() {
 
   const fetchTokenPrice = async () => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const response = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
+        `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`,
+        { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
       );
+
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
         if (data.pairs && data.pairs.length > 0) {
-          const price = parseFloat(data.pairs[0].priceUsd || "0.000001");
+          // Find Avalanche pairs specifically
+          const avalanchePair = data.pairs.find(pair => 
+            pair.chainId === 'avalanche' || 
+            pair.baseToken?.address?.toLowerCase() === process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS?.toLowerCase()
+          );
+          
+          const pair = avalanchePair || data.pairs[0];
+          const price = parseFloat(pair.priceUsd || "0.000001");
           setTokenPrice(price > 0 ? price : 0.000001);
           setPriceLastUpdated(new Date());
+          console.log(`Fetched CHAOS price from ${pair.dexId || 'DEX'}: $${price}`);
+        } else {
+          throw new Error("No trading pairs found");
         }
+      } else {
+        throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
       console.warn("Price fetch failed, using fallback:", error);
@@ -59,7 +82,23 @@ export default function Buy() {
     }
     
     const tokens = usdAmount / tokenPrice;
-    setEstimatedTokens(tokens.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+    
+    // Format with appropriate precision based on token amount
+    let formattedTokens;
+    if (tokens >= 1000000) {
+      formattedTokens = (tokens / 1000000).toFixed(2) + 'M';
+    } else if (tokens >= 1000) {
+      formattedTokens = (tokens / 1000).toFixed(2) + 'K';
+    } else if (tokens >= 1) {
+      formattedTokens = tokens.toLocaleString(undefined, { 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2 
+      });
+    } else {
+      formattedTokens = tokens.toFixed(8);
+    }
+    
+    setEstimatedTokens(formattedTokens);
   };
 
   const handleAmountChange = (e) => {
@@ -96,11 +135,23 @@ export default function Buy() {
         
         {/* Page Header */}
         <div className="card page-header">
-          <h1 className="page-title">🛒 Buy CHAOS Tokens</h1>
-          <p className="page-description">
-            Purchase CHAOS tokens securely using crypto or fiat currency. 
-            Powered by ThirdWeb Pay with support for 50+ payment networks.
-          </p>
+          <div className="page-header-content">
+            <img 
+              src="/chaos-coin-logo.png" 
+              alt="CHAOS Coin" 
+              className="page-logo"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <div className="page-text">
+              <h1 className="page-title buy-chaos-title">Buy CHAOS Tokens</h1>
+              <p className="page-description">
+                Purchase CHAOS tokens securely using crypto or fiat currency. 
+                Powered by ThirdWeb Pay with support for 50+ payment networks.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Price Information */}
@@ -214,17 +265,26 @@ export default function Buy() {
             
             {account ? (
               <div className="payment-widget-container">
-                <iframe
-                  src={`https://pay.thirdweb.com/checkout/${THIRDWEB_PAY_CLIENT_ID}?amount=${amount || '10'}&currency=USD&theme=dark`}
-                  width="100%"
-                  height="600"
-                  style={{
-                    border: 'none',
-                    borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.05)'
-                  }}
-                  title="ThirdWeb Pay Checkout"
-                />
+                {amount && parseFloat(amount) > 0 ? (
+                  <iframe
+                    src={`https://pay.thirdweb.com/checkout?clientId=${THIRDWEB_PAY_CLIENT_ID}&amount=${amount}&currency=USD&theme=dark&toAddress=${account.address}&toToken=${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}&toChain=avalanche`}
+                    width="100%"
+                    height="600"
+                    style={{
+                      border: 'none',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.05)'
+                    }}
+                    title="ThirdWeb Pay Checkout"
+                    allow="payment"
+                  />
+                ) : (
+                  <div className="payment-placeholder">
+                    <div className="placeholder-icon">💳</div>
+                    <h4>Enter Purchase Amount</h4>
+                    <p>Please enter an amount above to proceed with payment</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="connect-wallet-prompt">
