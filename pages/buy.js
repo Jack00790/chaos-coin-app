@@ -286,11 +286,14 @@ export default function Buy() {
                       name: "CHAOS Token Purchase",
                       description: `Purchase ${estimatedTokens} CHAOS tokens`,
                       image: "/chaos-coin-logo.png",
+                      buyerAddress: account.address,
+                      tokenAmount: estimatedTokens,
                     },
+                    webhookUrl: `${window.location.origin}/api/webhook/payment-success`,
                   }}
                   onPaymentSuccess={(result) => {
                     console.log("Payment successful:", result);
-                    alert(`Payment successful! Transaction hash: ${result.transactionHash}`);
+                    alert(`Payment successful! Your ${estimatedTokens} CHAOS tokens will be delivered to your wallet shortly. Transaction hash: ${result.transactionHash}`);
                     setShowPayment(false);
                     setAmount('');
                   }}
