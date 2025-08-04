@@ -93,8 +93,8 @@ export default function News() {
       console.log('🔄 Fetching crypto news...', new Date().toLocaleTimeString());
       const cryptoNews = await getAllCryptoNews();
       
-      // Ensure we always have exactly 7 articles
-      const newsToDisplay = cryptoNews.slice(0, 7);
+      // Ensure we always have exactly 12 articles for more tweet-like content
+      const newsToDisplay = cryptoNews.slice(0, 12);
       setNews(newsToDisplay);
       
       console.log(`✅ Successfully loaded ${newsToDisplay.length} crypto news articles at ${new Date().toLocaleTimeString()}`);
