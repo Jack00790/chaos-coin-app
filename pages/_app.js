@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import { ThirdwebProvider } from "thirdweb/react";
+import Head from "next/head";
 
 /**
  * The custom App component for Next.js.  It wraps every page with the
@@ -11,6 +12,11 @@ import { ThirdwebProvider } from "thirdweb/react";
 export default function MyApp({ Component, pageProps }) {
   return (
     <ThirdwebProvider>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </Head>
       <Component {...pageProps} />
     </ThirdwebProvider>
   );
