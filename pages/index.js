@@ -24,9 +24,19 @@ export default function Home() {
   });
 
   useEffect(() => {
-    fetchMarketData();
-    fetchTopMovers();
-    fetchCryptoNews();
+    const initializeData = async () => {
+      try {
+        await Promise.allSettled([
+          fetchMarketData(),
+          fetchTopMovers(), 
+          fetchCryptoNews()
+        ]);
+      } catch (error) {
+        console.error("Error initializing page data:", error);
+      }
+    };
+
+    initializeData();
   }, []);
 
   const fetchMarketData = async () => {
@@ -35,6 +45,11 @@ export default function Home() {
       const response = await fetch(
         `https://api.dexscreener.com/latest/dex/tokens/${process.env.NEXT_PUBLIC_CHAOS_COIN_ADDRESS}`
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
       if (data.pairs && data.pairs.length > 0) {
@@ -44,9 +59,22 @@ export default function Home() {
           volume24h: pair.volume?.h24 ? `$${(pair.volume.h24 / 1000000).toFixed(2)}M` : "N/A",
           price: parseFloat(pair.priceUsd || "0")
         });
+      } else {
+        // Set fallback data if no pairs found
+        setMarketData({
+          marketCap: "N/A",
+          volume24h: "N/A",
+          price: 0.000001
+        });
       }
     } catch (error) {
       console.error("Error fetching market data:", error);
+      // Set fallback data on error
+      setMarketData({
+        marketCap: "N/A",
+        volume24h: "N/A",
+        price: 0.000001
+      });
     }
   };
 
@@ -56,9 +84,14 @@ export default function Home() {
       const response = await fetch(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
       );
+      
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
-      if (data && Array.isArray(data)) {
+      if (data && Array.isArray(data) && data.length > 0) {
         // Filter and sort gainers (positive changes only)
         const gainersFiltered = data
           .filter(coin => coin.price_change_percentage_24h > 0)
@@ -71,36 +104,57 @@ export default function Home() {
           .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
           .slice(0, 3);
 
-        setGainers(gainersFiltered.map(coin => ({
-          symbol: coin.symbol.toUpperCase(),
-          name: coin.name,
-          price: coin.current_price,
-          change: coin.price_change_percentage_24h,
-          icon: coin.image
-        })));
+        if (gainersFiltered.length > 0) {
+          setGainers(gainersFiltered.map(coin => ({
+            symbol: coin.symbol.toUpperCase(),
+            name: coin.name,
+            price: coin.current_price,
+            change: coin.price_change_percentage_24h,
+            icon: coin.image
+          })));
+        } else {
+          setGainersToFallback();
+        }
 
-        setLosers(losersFiltered.map(coin => ({
-          symbol: coin.symbol.toUpperCase(),
-          name: coin.name,
-          price: coin.current_price,
-          change: coin.price_change_percentage_24h,
-          icon: coin.image
-        })));
+        if (losersFiltered.length > 0) {
+          setLosers(losersFiltered.map(coin => ({
+            symbol: coin.symbol.toUpperCase(),
+            name: coin.name,
+            price: coin.current_price,
+            change: coin.price_change_percentage_24h,
+            icon: coin.image
+          })));
+        } else {
+          setLosersToFallback();
+        }
+      } else {
+        setFallbackMovers();
       }
     } catch (error) {
       console.error("Error fetching movers:", error);
-      // Set fallback data if API fails
-      setGainers([
-        { symbol: "BTC", name: "Bitcoin", price: 45000, change: 5.2, icon: "https://via.placeholder.com/32" },
-        { symbol: "ETH", name: "Ethereum", price: 3000, change: 3.8, icon: "https://via.placeholder.com/32" },
-        { symbol: "SOL", name: "Solana", price: 100, change: 7.1, icon: "https://via.placeholder.com/32" }
-      ]);
-      setLosers([
-        { symbol: "ADA", name: "Cardano", price: 0.5, change: -2.1, icon: "https://via.placeholder.com/32" },
-        { symbol: "DOT", name: "Polkadot", price: 7, change: -3.5, icon: "https://via.placeholder.com/32" },
-        { symbol: "LINK", name: "Chainlink", price: 15, change: -1.8, icon: "https://via.placeholder.com/32" }
-      ]);
+      setFallbackMovers();
     }
+  };
+
+  const setFallbackMovers = () => {
+    setGainersToFallback();
+    setLosersToFallback();
+  };
+
+  const setGainersToFallback = () => {
+    setGainers([
+      { symbol: "BTC", name: "Bitcoin", price: 45000, change: 5.2, icon: "https://via.placeholder.com/32" },
+      { symbol: "ETH", name: "Ethereum", price: 3000, change: 3.8, icon: "https://via.placeholder.com/32" },
+      { symbol: "SOL", name: "Solana", price: 100, change: 7.1, icon: "https://via.placeholder.com/32" }
+    ]);
+  };
+
+  const setLosersToFallback = () => {
+    setLosers([
+      { symbol: "ADA", name: "Cardano", price: 0.5, change: -2.1, icon: "https://via.placeholder.com/32" },
+      { symbol: "DOT", name: "Polkadot", price: 7, change: -3.5, icon: "https://via.placeholder.com/32" },
+      { symbol: "LINK", name: "Chainlink", price: 15, change: -1.8, icon: "https://via.placeholder.com/32" }
+    ]);
   };
 
   const fetchCryptoNews = async () => {
@@ -109,77 +163,89 @@ export default function Home() {
       const response = await fetch(
         'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss&count=6'
       );
+      
+      if (!response.ok) {
+        throw new Error(`News API error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
-      if (data.status === 'ok' && data.items) {
+      if (data.status === 'ok' && data.items && data.items.length > 0) {
         const articles = data.items.map(item => ({
-          title: item.title,
-          excerpt: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) + '...',
-          timestamp: new Date(item.pubDate).toLocaleDateString(),
+          title: item.title || "Crypto News Update",
+          excerpt: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 120) + '...' : "Latest cryptocurrency news and market updates...",
+          timestamp: item.pubDate ? new Date(item.pubDate).toLocaleDateString() : "Recent",
           image: item.thumbnail || item.enclosure?.link || 'https://via.placeholder.com/300x200?text=Crypto+News',
-          url: item.link
+          url: item.link || "#"
         }));
         setNews(articles);
       } else {
-        // Fallback news with placeholder images
-        const fallbackNews = [
-          {
-            title: "Bitcoin Reaches New All-Time High",
-            excerpt: "Bitcoin price surges past previous records amid institutional adoption and growing mainstream acceptance...",
-            timestamp: "2 hours ago",
-            image: "https://via.placeholder.com/300x200?text=Bitcoin+ATH",
-            url: "#"
-          },
-          {
-            title: "Ethereum 2.0 Update Shows Promise",
-            excerpt: "Latest developments in Ethereum's proof-of-stake transition show significant improvements in scalability...",
-            timestamp: "4 hours ago",
-            image: "https://via.placeholder.com/300x200?text=Ethereum+2.0",
-            url: "#"
-          },
-          {
-            title: "DeFi Market Continues Growth",
-            excerpt: "Decentralized finance protocols see increased activity as total value locked reaches new milestones...",
-            timestamp: "6 hours ago",
-            image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
-            url: "#"
-          }
-        ];
-        setNews(fallbackNews);
+        setFallbackNews();
       }
     } catch (error) {
       console.error("Error fetching news:", error);
-      // Set fallback news on error
-      const fallbackNews = [
-        {
-          title: "Bitcoin Market Analysis",
-          excerpt: "Technical analysis shows strong support levels as institutional interest continues to grow...",
-          timestamp: "1 hour ago",
-          image: "https://via.placeholder.com/300x200?text=Bitcoin+Analysis",
-          url: "#"
-        },
-        {
-          title: "Altcoin Season Predictions",
-          excerpt: "Market experts discuss the potential for altcoin momentum in the current market cycle...",
-          timestamp: "3 hours ago",
-          image: "https://via.placeholder.com/300x200?text=Altcoin+Season",
-          url: "#"
-        }
-      ];
-      setNews(fallbackNews);
+      setFallbackNews();
     }
   };
 
+  const setFallbackNews = () => {
+    const fallbackNews = [
+      {
+        title: "Bitcoin Market Analysis",
+        excerpt: "Technical analysis shows strong support levels as institutional interest continues to grow across major markets...",
+        timestamp: "1 hour ago",
+        image: "https://via.placeholder.com/300x200?text=Bitcoin+Analysis",
+        url: "#"
+      },
+      {
+        title: "Ethereum Development Updates",
+        excerpt: "Latest developments in Ethereum ecosystem show promising improvements in scalability and user experience...",
+        timestamp: "3 hours ago",
+        image: "https://via.placeholder.com/300x200?text=Ethereum+Updates",
+        url: "#"
+      },
+      {
+        title: "DeFi Market Growth",
+        excerpt: "Decentralized finance protocols continue to see increased activity as total value locked reaches new heights...",
+        timestamp: "5 hours ago",
+        image: "https://via.placeholder.com/300x200?text=DeFi+Growth",
+        url: "#"
+      },
+      {
+        title: "Altcoin Market Trends",
+        excerpt: "Market experts analyze current altcoin trends and discuss potential opportunities in the evolving crypto landscape...",
+        timestamp: "7 hours ago",
+        image: "https://via.placeholder.com/300x200?text=Altcoin+Trends",
+        url: "#"
+      }
+    ];
+    setNews(fallbackNews);
+  };
+
   const formatBalance = (balance) => {
-    if (!balance) return "0.00";
-    const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
-    return tokens.toFixed(2);
+    try {
+      if (!balance) return "0.00";
+      const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
+      if (isNaN(tokens)) return "0.00";
+      return tokens.toFixed(2);
+    } catch (error) {
+      console.error("Error formatting balance:", error);
+      return "0.00";
+    }
   };
 
   const calculatePortfolioValue = () => {
-    if (!balance || !marketData.price) return "0.00";
-    const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
-    return (tokens * marketData.price).toFixed(2);
+    try {
+      if (!balance || !marketData.price || marketData.price === 0) return "0.00";
+      const tokens = parseFloat(balance.toString()) / Math.pow(10, 18);
+      if (isNaN(tokens)) return "0.00";
+      const value = tokens * marketData.price;
+      if (isNaN(value)) return "0.00";
+      return value.toFixed(2);
+    } catch (error) {
+      console.error("Error calculating portfolio value:", error);
+      return "0.00";
+    }
   };
 
   return (
