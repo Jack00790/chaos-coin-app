@@ -27,10 +27,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/buy": [
+    "/news": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/buy.js"
+      "static/chunks/pages/news.js"
     ],
     "/swap": [
       "static/chunks/webpack.js",
