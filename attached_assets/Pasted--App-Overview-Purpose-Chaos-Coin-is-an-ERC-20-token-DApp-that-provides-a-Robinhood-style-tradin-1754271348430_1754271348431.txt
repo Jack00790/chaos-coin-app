@@ -1,0 +1,259 @@
+📱 App Overview & Purpose
+Chaos Coin is an ERC-20 token DApp that provides a Robinhood-style trading interface for users to interact with the CHAOS token on Avalanche network. The app enables:
+
+Token minting/buying through secure payment processing
+Token swapping via Uniswap integration
+Real-time price tracking via DexScreener API
+Admin panel for authorized token management
+Social news feed with Twitter-style posting
+Wallet management and transaction history
+🔗 Contract & Social Information
+Contract Details:
+
+Token Name: Chaos Coin (CHAOS)
+Contract Address: 0xAafE46fB108dbf914C10005b0Cb1997c8C27a99d
+Network: Avalanche C-Chain
+Treasury Address: 0x5717F2f03276C8E897995F03d05bF8F36E905cF2
+Etherscan Link: View on Etherscan
+Social Media Links:
+
+Discord: https://discord.com/channels/1398769618088231042/1398769618692345918
+Twitter: https://twitter.com/ChaosCoin_
+Telegram: https://t.me/chaoscoin
+Instagram: https://www.instagram.com/Chaos_Coin_/
+TikTok: https://www.tiktok.com/@ChaosCoin_
+🏗️ Project Structure & Architecture
+chaos-coin-app/
+├── components/           # Reusable React components
+│   ├── Navbar.js        # Top navigation with wallet connect
+│   ├── Navigation.js    # Bottom mobile navigation
+│   ├── AccountBalance.js # User balance display
+│   ├── TokenOperations.js # Mint/sell functionality
+│   └── FiatToBuy.js     # Fiat purchase calculator
+├── pages/               # Next.js pages (routes)
+│   ├── index.js         # Home dashboard
+│   ├── buy.js           # Token purchase page
+│   ├── swap.js          # Uniswap integration
+│   ├── wallet.js        # User wallet & history
+│   ├── news.js          # Social feed & crypto news
+│   └── admin.js         # Admin panel (restricted)
+├── lib/                 # Utility libraries
+│   ├── client.js        # ThirdWeb client config
+│   ├── contract.js      # Smart contract setup
+│   ├── newsApi.js       # News aggregation
+│   └── security.js      # Security validations
+├── styles/
+│   └── globals.css      # Professional DeFi styling
+└── .env.local           # Environment configuration
+🎨 Design System & Icons
+The app uses a professional DeFi aesthetic with:
+
+Color Scheme:
+
+Primary Green: #10b981 (success/buy actions)
+Secondary Red: #ef4444 (sell/danger actions)
+Background: Dark theme with gradient overlays
+Text: Light gray (#e5e7eb) on dark backgrounds
+Navigation Icons (SVG-based):
+
+Home: House icon (🏠)
+Buy: Shopping cart icon (🛒)
+Swap: Exchange arrows icon (🔄)
+News: News/document icon (📰)
+Wallet: Wallet icon (👛)
+Icon Implementation:
+Icons use CSS masks with SVG data URLs for crisp, scalable graphics that adapt to the theme.
+
+📄 Page-by-Page Breakdown
+1. Home Page (/ - index.js)
+Purpose: Main dashboard showing portfolio overview and market data
+
+Key Features:
+
+Portfolio value calculation based on user's CHAOS balance
+Real-time price fetching from DexScreener API
+Market statistics (price, market cap, 24h volume)
+Social media links section
+Top gainers/losers from CoinGecko API
+Latest crypto news from RSS feeds
+Professional card-based layout
+Data Sources:
+
+DexScreener API for CHAOS price data
+CoinGecko API for market movers
+RSS2JSON service for crypto news
+2. Buy Page (/buy - buy.js)
+Purpose: Token purchase interface with fiat/crypto options
+
+Key Features:
+
+ThirdWeb Pay integration (iframe embed)
+Real-time price display with last update timestamp
+Price history mini-chart
+Security features showcase
+Price manipulation protection
+Support for 50+ payment networks
+Payment Integration:
+Uses ThirdWeb Pay checkout iframe with ID: d62cbbba-24b1-4ac0-b048-7781605867e4
+
+3. Swap Page (/swap - swap.js)
+Purpose: DEX trading via Uniswap integration
+
+Key Features:
+
+Embedded Uniswap V3 interface
+Pre-configured AVAX → CHAOS trading pair
+Avalanche network integration
+Trade details and network information
+Uniswap URL:
+
+https://app.uniswap.org/#/swap?exactField=input&exactAmount=1&inputCurrency=0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7&outputCurrency=${CHAOS_ADDRESS}&chain=avalanche
+4. Wallet Page (/wallet - wallet.js)
+Purpose: User wallet management and token information
+
+Key Features:
+
+Real-time CHAOS balance display
+USD value calculation
+MetaMask tutorial integration (YouTube embed)
+Token import instructions
+Transaction history (mock data)
+Copy-to-clipboard functionality for contract address
+Tutorial Integration:
+
+YouTube iframe: https://www.youtube.com/embed/6Gf_kRE4MJU
+Step-by-step MetaMask token import guide
+5. News Page (/news - news.js)
+Purpose: Social feed and crypto news aggregation
+
+Key Features:
+
+Twitter-style admin posting interface
+Rich media support (images, videos)
+Poll creation system
+Pin/unpin functionality
+Multi-source crypto news aggregation
+Local storage for posts persistence
+Admin Controls:
+
+Only treasury address can post
+Content moderation tools
+Post management (pin/delete)
+6. Admin Page (/admin - admin.js)
+Purpose: Restricted admin panel for token management
+
+Key Features:
+
+Access control (treasury address only)
+Secure token minting interface
+Transaction validation
+Contract statistics display
+Security logging and monitoring
+Security Features:
+
+Address validation (regex: /^0x[a-fA-F0-9]{40}$/)
+Amount validation (0 < amount ≤ 1,000,000)
+Rate limiting protection
+Admin address verification
+🔧 Technical Implementation Details
+Environment Configuration (.env.local)
+NEXT_PUBLIC_TW_CLIENT_ID=1e60faa32aa9f5e06a9fb8afdb3a02c8
+NEXT_PUBLIC_CHAOS_COIN_ADDRESS=0xAafE46fB108dbf914C10005b0Cb1997c8C27a99d
+NEXT_PUBLIC_CHAIN=avalanche
+NEXT_PUBLIC_TREASURY_ADDRESS=0x5717F2f03276C8E897995F03d05bF8F36E905cF2
+NEXT_PUBLIC_ETHERSCAN_API_KEY=YourEtherscanAPIKey
+NEXT_PUBLIC_NEWS_REFRESH_INTERVAL=600000
+Smart Contract Integration
+ThirdWeb SDK v5 Usage:
+
+useActiveAccount() - Get connected wallet
+useReadContract() - Read token balance
+TransactionButton - Secure transaction execution
+prepareContractCall() - Transaction preparation
+Contract Methods:
+
+mintTo(address, amount) - Admin minting
+transfer(address, amount) - Token transfers
+balanceOf(address) - Balance queries
+Security Implementations
+Price Manipulation Protection:
+
+const validatePriceData = (newPrice, oldPrice) => {
+  if (oldPrice === 0) return true;
+  const changePercent = Math.abs((newPrice - oldPrice) / oldPrice);
+  return changePercent < 0.5; // Max 50% change
+};
+Input Validation:
+
+Address validation with regex
+Amount bounds checking
+XSS prevention via content sanitization
+Rate limiting on API calls
+Mobile-First Design
+Responsive Navigation:
+
+Bottom navigation bar for mobile
+Touch-friendly button sizing
+Swipe gestures support
+Progressive Web App features
+🚀 Development Setup
+Prerequisites:
+
+Node.js 18+ installed
+ThirdWeb account with client ID
+Deployed ERC-20 contract on Avalanche
+Installation Steps:
+
+Clone repository
+npm install - Install dependencies
+Copy .env.example to .env.local
+Configure environment variables
+npm run dev - Start development server
+Open http://0.0.0.0:3000
+🔌 API Integrations
+DexScreener API:
+
+Endpoint: https://api.dexscreener.com/latest/dex/tokens/${CONTRACT_ADDRESS}
+Purpose: Real-time token price data
+Fallback: $0.001 default price
+CoinGecko API:
+
+Endpoint: https://api.coingecko.com/api/v3/coins/markets
+Purpose: Top gainers/losers data
+Rate limit: Respectful polling
+RSS2JSON Service:
+
+Endpoint: https://api.rss2json.com/v1/api.json
+Purpose: Crypto news aggregation
+Sources: CoinTelegraph, CoinDesk
+💾 Data Persistence
+Local Storage Usage:
+
+User posts and admin content
+Price history caching
+User preferences
+Transaction history (mock)
+Format:
+
+{
+  "chaoscoin_posts": [...],
+  "price_history": [...],
+  "user_preferences": {...}
+}
+🔒 Security Considerations
+Authentication:
+
+Wallet-based authentication
+Admin role verification
+Transaction signing required
+Data Validation:
+
+Client and server-side validation
+Sanitized user inputs
+Protected admin endpoints
+API Security:
+
+Rate limiting implementation
+Error handling with fallbacks
+Secure environment variable usage
+This documentation provides everything needed to recreate the Chaos Coin DApp with all its features, integrations, and security measures intact.
