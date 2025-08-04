@@ -2,7 +2,6 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/buy": "pages/buy.js",
-  "/swap": "pages/swap.js"
+  "/swap": "pages/swap.js",
+  "/": "pages/index.js"
 }
