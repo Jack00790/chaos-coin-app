@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import Navbar from "../components/Navbar";
-import { client } from "../lib/client";
+import { client, isClientValid } from "../lib/client";
 import { getActiveChain } from "../lib/contract";
 import { validatePriceData } from "../lib/security";
 
@@ -49,6 +49,21 @@ export default function Buy() {
       setTokenPrice(0.001);
     }
   };
+
+  if (!isClientValid()) {
+    return (
+      <div className="app-container">
+        <Navbar />
+        <main className="main-content">
+          <h1 className="page-title">Buy Chaos Coin</h1>
+          <div className="card text-center">
+            <h2 className="section-title">Configuration Error</h2>
+            <p className="text-gray mb-3">ThirdWeb client not properly configured</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!account) {
     return (

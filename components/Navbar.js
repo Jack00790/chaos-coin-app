@@ -1,19 +1,20 @@
 import React from "react";
 import { ConnectButton } from "thirdweb/react";
-import { client } from "../lib/client";
+import { client, isClientValid } from "../lib/client";
 import Navigation from "./Navigation";
 
 /**
  * Top navigation bar with mobile-friendly navigation.
  */
 export default function Navbar() {
-  if (!client) {
-    console.error("ThirdWeb client not initialized");
+  if (!client || !isClientValid()) {
     return (
       <>
         <nav className="navbar">
           <div className="navbar__button">
-            <span className="error-msg">Wallet connection unavailable</span>
+            <span className="error-msg" style={{color: '#ef4444', fontSize: '0.9rem'}}>
+              Configuration Error
+            </span>
           </div>
         </nav>
         <Navigation />
@@ -21,14 +22,30 @@ export default function Navbar() {
     );
   }
 
-  return (
-    <>
-      <nav className="navbar">
-        <div className="navbar__button">
-          <ConnectButton client={client} className="connect-btn" />
-        </div>
-      </nav>
-      <Navigation />
-    </>
-  );
+  try {
+    return (
+      <>
+        <nav className="navbar">
+          <div className="navbar__button">
+            <ConnectButton client={client} className="connect-btn" />
+          </div>
+        </nav>
+        <Navigation />
+      </>
+    );
+  } catch (error) {
+    console.error("Error rendering Navbar:", error);
+    return (
+      <>
+        <nav className="navbar">
+          <div className="navbar__button">
+            <span className="error-msg" style={{color: '#ef4444', fontSize: '0.9rem'}}>
+              Connection Error
+            </span>
+          </div>
+        </nav>
+        <Navigation />
+      </>
+    );
+  }
 }
