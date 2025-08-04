@@ -424,19 +424,19 @@ export default function Home() {
 
         {/* Crypto News - Twitter Style Feed */}
         <div className="card news-section">
-          <h2 className="section-title">Latest Crypto News</h2>
+          <h2 className="section-title">📰 Latest Crypto News</h2>
           <div className="news-feed-vertical">
             {news.map((article, index) => (
               <div key={`news-${index}`} className="news-item-twitter">
                 <div className="news-item-header">
-                  <img 
-                    src="https://via.placeholder.com/40x40/10b981/ffffff?text=C"
-                    alt="Crypto News"
-                    className="news-item-image"
-                  />
+                  <div className="news-item-image">
+                    C
+                  </div>
                   <div className="news-item-meta">
-                    <h4 className="news-item-source">Crypto News</h4>
-                    <span className="news-item-time">{article.timestamp}</span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <h4 className="news-item-source">Crypto News</h4>
+                      <span className="news-item-time">• {article.timestamp}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="news-item-content">
@@ -444,7 +444,7 @@ export default function Home() {
                   <p className="news-item-description">{article.excerpt}</p>
                   {article.url !== "#" && (
                     <a href={article.url} target="_blank" rel="noopener noreferrer" className="news-item-link">
-                      Read full article →
+                      Read article
                     </a>
                   )}
                 </div>
